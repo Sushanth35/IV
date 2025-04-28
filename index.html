@@ -3,15 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <title>Mutual Funds Visualization</title>
-    <link rel="stylesheet" href="./styles.css">  <!-- ADD ./ -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #chart {
+            overflow-x: auto;
+            margin-top: 30px;
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: orange;
+        }
+        .axis-label {
+            font-size: 12px;
+        }
+        .tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
 
     <h1>Mutual Funds Dashboard</h1>
     <div id="chart"></div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="./script.js"></script>  <!-- ADD ./ -->
+    <script>
+        // Tooltip
+        const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+        // Load CSV
+        d3.csv("a1-mutualfunds.csv").then(function(data) {
+            const cleanData = data
+                .filter(d => !isNaN(parseFloat(d.YTD)))
+                .map(d => ({
+                    Name: d.Name,
+                    YTD: +d.YTD
+                }));
+
+            const width = Math.max(800, cleanData.length * 30);
+            const height = 500;
+            const margin = { top: 40, right: 20, bottom: 150, left: 80 };
+
+            const svg = d3.select("#chart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            const x = d3.scaleBand()
+                .domain(cleanData.map(d => d.Name))
+                .range([margin.left, width - margin.right])
+                .padding(0.2);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(cleanData, d => d.YTD)])
+                .nice()
+                .range([height - margin.bottom, margin.top]);
+
+            svg.append("g")
+                .selectAll("rect")
+                .data(cleanData)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.Name))
+                .attr("y", d => y(d.YTD))
+                .attr("height", d => y(0) - y(d.YTD))
+                .attr("width", x.bandwidth())
+                .on("mouseover", (event, d) => {
+                    tooltip
+                        .style("display", "block")
+                        .html(`<strong>${d.Name}</strong><br>YTD: ${d.YTD}%`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mousemove", (event) => {
+                    tooltip
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.style("display", "none");
+                });
+
+            // X Axis
+            svg.append("g")
+                .attr("transform", `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-60)")
+                .style("text-anchor", "end")
+                .style("font-size", "10px");
+
+            // Y Axis
+            svg.append("g")
+                .attr("transform", `translate(${margin.left},0)`)
+                .call(d3.axisLeft(y));
+
+            // Axis labels
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("x", width / 2)
+                .attr("y", height - 100)
+                .attr("text-anchor", "middle")
+                .text("Mutual Fund Name");
+
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", 20)
+                .attr("text-anchor", "middle")
+                .text("YTD Return (%)");
+        });
+    </script>
+
 </body>
 </html>
-
