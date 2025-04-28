@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mutual Funds Visualization</title>
+    <title>Grocery Store Survey Visualizations</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
@@ -10,9 +10,11 @@
             text-align: center;
             margin: 20px;
         }
-        #chart {
-            overflow-x: auto;
-            margin-top: 30px;
+        .chart {
+            margin: 40px auto;
+        }
+        svg {
+            overflow: visible;
         }
         .bar {
             fill: steelblue;
@@ -20,16 +22,13 @@
         .bar:hover {
             fill: orange;
         }
-        .axis-label {
-            font-size: 12px;
-        }
         .tooltip {
             position: absolute;
             background-color: white;
-            border: 1px solid #ddd;
-            padding: 5px;
-            border-radius: 4px;
+            border: 1px solid #ccc;
+            padding: 6px;
             font-size: 12px;
+            border-radius: 4px;
             display: none;
             pointer-events: none;
         }
@@ -37,97 +36,171 @@
 </head>
 <body>
 
-    <h1>Mutual Funds Dashboard</h1>
-    <div id="chart"></div>
+    <h1>Grocery Store Survey Visualizations</h1>
+
+    <div id="barChart1" class="chart"></div>
+    <div id="pieChart" class="chart"></div>
+    <div id="barChart2" class="chart"></div>
 
     <script>
-        // Tooltip
         const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 
-        // Load CSV
-        d3.csv("a1-mutualfunds.csv").then(function(data) {
-            const cleanData = data
-                .filter(d => !isNaN(parseFloat(d.YTD)))
-                .map(d => ({
-                    Name: d.Name,
-                    YTD: +d.YTD
-                }));
+        d3.csv("a1-grocerystoresurvey.csv", d3.autoType).then(function(dataRaw) {
+            // Skip the first junk row manually
+            const data = dataRaw.slice(1);
 
-            const width = Math.max(800, cleanData.length * 30);
-            const height = 500;
-            const margin = { top: 40, right: 20, bottom: 150, left: 80 };
+            // BAR CHART 1: Average Purchase Amount by Payment Method
+            const purchaseByPayment = d3.rollup(
+                data,
+                v => d3.mean(v, d => d.PurchaseAmount),
+                d => d.PaymentMethod
+            );
 
-            const svg = d3.select("#chart")
+            const purchaseData = Array.from(purchaseByPayment, ([PaymentMethod, AvgPurchase]) => ({ PaymentMethod, AvgPurchase }));
+
+            drawBarChart({
+                id: "barChart1",
+                title: "Average Purchase Amount by Payment Method",
+                data: purchaseData,
+                xKey: "PaymentMethod",
+                yKey: "AvgPurchase",
+                width: 700,
+                height: 400
+            });
+
+            // PIE CHART: Gender Distribution
+            const genderCount = d3.rollup(
+                data,
+                v => v.length,
+                d => d.Gender
+            );
+
+            const genderData = Array.from(genderCount, ([Gender, Count]) => ({ Gender, Count }));
+
+            drawPieChart({
+                id: "pieChart",
+                title: "Gender Distribution",
+                data: genderData,
+                key: "Gender",
+                value: "Count",
+                width: 400,
+                height: 400
+            });
+
+            // BAR CHART 2: Average Income by Chain
+            const incomeByChain = d3.rollup(
+                data,
+                v => d3.mean(v, d => d.Income),
+                d => d.Chain
+            );
+
+            const incomeData = Array.from(incomeByChain, ([Chain, AvgIncome]) => ({ Chain, AvgIncome }));
+
+            drawBarChart({
+                id: "barChart2",
+                title: "Average Income by Chain",
+                data: incomeData,
+                xKey: "Chain",
+                yKey: "AvgIncome",
+                width: 700,
+                height: 400
+            });
+        });
+
+        function drawBarChart({ id, title, data, xKey, yKey, width, height }) {
+            const margin = { top: 50, right: 20, bottom: 120, left: 70 };
+            const svg = d3.select(`#${id}`)
                 .append("svg")
                 .attr("width", width)
                 .attr("height", height);
 
             const x = d3.scaleBand()
-                .domain(cleanData.map(d => d.Name))
+                .domain(data.map(d => d[xKey]))
                 .range([margin.left, width - margin.right])
-                .padding(0.2);
+                .padding(0.3);
 
             const y = d3.scaleLinear()
-                .domain([0, d3.max(cleanData, d => d.YTD)])
+                .domain([0, d3.max(data, d => d[yKey])])
                 .nice()
                 .range([height - margin.bottom, margin.top]);
 
             svg.append("g")
                 .selectAll("rect")
-                .data(cleanData)
+                .data(data)
                 .enter()
                 .append("rect")
                 .attr("class", "bar")
-                .attr("x", d => x(d.Name))
-                .attr("y", d => y(d.YTD))
-                .attr("height", d => y(0) - y(d.YTD))
+                .attr("x", d => x(d[xKey]))
+                .attr("y", d => y(d[yKey]))
+                .attr("height", d => y(0) - y(d[yKey]))
                 .attr("width", x.bandwidth())
                 .on("mouseover", (event, d) => {
-                    tooltip
-                        .style("display", "block")
-                        .html(`<strong>${d.Name}</strong><br>YTD: ${d.YTD}%`)
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 20) + "px");
+                    tooltip.style("display", "block")
+                           .html(`${d[xKey]}<br>${yKey}: ${d[yKey].toFixed(2)}`)
+                           .style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 20) + "px");
                 })
-                .on("mousemove", (event) => {
-                    tooltip
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 20) + "px");
+                .on("mousemove", event => {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 20) + "px");
                 })
-                .on("mouseout", () => {
-                    tooltip.style("display", "none");
-                });
+                .on("mouseout", () => tooltip.style("display", "none"));
 
-            // X Axis
             svg.append("g")
                 .attr("transform", `translate(0,${height - margin.bottom})`)
                 .call(d3.axisBottom(x))
                 .selectAll("text")
-                .attr("transform", "rotate(-60)")
-                .style("text-anchor", "end")
-                .style("font-size", "10px");
+                .attr("transform", "rotate(-50)")
+                .style("text-anchor", "end");
 
-            // Y Axis
             svg.append("g")
                 .attr("transform", `translate(${margin.left},0)`)
                 .call(d3.axisLeft(y));
 
-            // Axis labels
             svg.append("text")
-                .attr("class", "axis-label")
                 .attr("x", width / 2)
-                .attr("y", height - 100)
+                .attr("y", margin.top / 2)
                 .attr("text-anchor", "middle")
-                .text("Mutual Fund Name");
+                .style("font-size", "16px")
+                .text(title);
+        }
 
-            svg.append("text")
-                .attr("class", "axis-label")
-                .attr("transform", "rotate(-90)")
-                .attr("x", -height / 2)
-                .attr("y", 20)
-                .attr("text-anchor", "middle")
-                .text("YTD Return (%)");
-        });
+        function drawPieChart({ id, title, data, key, value, width, height }) {
+            const radius = Math.min(width, height) / 2 - 10;
+            const svg = d3.select(`#${id}`)
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+            const pie = d3.pie().value(d => d[value]);
+            const arc = d3.arc().innerRadius(0).outerRadius(radius);
+
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            svg.selectAll('path')
+                .data(pie(data))
+                .enter()
+                .append('path')
+                .attr('d', arc)
+                .attr('fill', d => color(d.data[key]))
+                .on("mouseover", (event, d) => {
+                    tooltip.style("display", "block")
+                           .html(`${d.data[key]}<br>${value}: ${d.data[value]}`)
+                           .style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mousemove", event => {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mouseout", () => tooltip.style("display", "none"));
+
+            d3.select(`#${id}`)
+              .append("h3")
+              .text(title);
+        }
     </script>
 
 </body>
