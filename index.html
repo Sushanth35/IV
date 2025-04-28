@@ -25,30 +25,19 @@
 
     <div class="filter">
         <label for="genderFilter">Filter by Gender:</label>
-        <select id="genderFilter">
-            <option value="All">All</option>
-        </select>
+        <select id="genderFilter"><option value="All">All</option></select>
 
         <label for="paymentFilter" style="margin-left:20px;">Filter by Payment Method:</label>
-        <select id="paymentFilter">
-            <option value="All">All</option>
-        </select>
+        <select id="paymentFilter"><option value="All">All</option></select>
 
         <label for="chainFilter" style="margin-left:20px;">Filter by Chain:</label>
-        <select id="chainFilter">
-            <option value="All">All</option>
-        </select>
+        <select id="chainFilter"><option value="All">All</option></select>
     </div>
 
     <div class="charts-row">
         <div class="chart" id="barChart"></div>
         <div class="chart" id="pieChart"></div>
         <div class="chart" id="scatterPlot"></div>
-    </div>
-
-    <div class="charts-row">
-        <div class="chart" id="lineChart"></div>
-        <div class="chart" id="donutChart"></div>
     </div>
 
     <div class="legend" id="legend"></div>
@@ -105,8 +94,6 @@
             drawBarChart(filtered);
             drawPieChart(filtered);
             drawScatterPlot(filtered);
-            drawLineChart(filtered);
-            drawDonutChart(filtered);
         }
 
         function drawBarChart(filtered) {
@@ -117,13 +104,15 @@
                   margin = {top: 20, right: 20, bottom: 50, left: 50},
                   width = svg.node().clientWidth - margin.left - margin.right,
                   height = svg.node().clientHeight - margin.top - margin.bottom,
-                  g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+                  g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})");
             const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
             const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
             const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
             g.selectAll("rect").data(Array.from(avgPurchase)).join("rect")
-                .attr("x", d => x(d[0])).attr("y", height)
-                .attr("width", x.bandwidth()).attr("height", 0)
+                .attr("x", d => x(d[0]))
+                .attr("y", height)
+                .attr("width", x.bandwidth())
+                .attr("height", 0)
                 .attr("fill", "steelblue")
                 .transition().duration(800)
                 .attr("y", d => y(d[1]))
@@ -148,24 +137,10 @@
             const pie = d3.pie().value(d => d[1]);
             const arc = d3.arc().innerRadius(0).outerRadius(radius);
             const color = d3.scaleOrdinal().domain(Array.from(genderCounts.keys())).range(d3.schemeCategory10);
-            const path = g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
+            g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
                 .attr("d", arc)
                 .attr("fill", d => color(d.data[0]))
-                .each(function(d) { this._current = d; });
-
-            path.transition().duration(800)
-                .attrTween("d", function(d) {
-                    var i = d3.interpolate(this._current, d);
-                    this._current = i(0);
-                    return function(t) { return arc(i(t)); };
-                });
-
-            path.on("mouseover", function(e,d){
-                tooltip.transition().duration(200).style("opacity", .9);
-                tooltip.html(`${d.data[0]}: ${d.data[1]}`)
-                    .style("left", (e.pageX+5) + "px")
-                    .style("top", (e.pageY-28) + "px");
-            }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+                .transition().duration(800);
 
             svg.append("text").attr("x", width/2).attr("y", 15)
                 .attr("text-anchor", "middle").style("font-size", "16px").text("Gender Distribution");
@@ -182,68 +157,19 @@
                   g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
             const x = d3.scaleLinear().domain(d3.extent(filtered, d => d.Income)).nice().range([0, width]);
             const y = d3.scaleLinear().domain(d3.extent(filtered, d => d.PurchaseAmount)).nice().range([height, 0]);
-            const color = d3.scaleOrdinal(d3.schemeCategory10);
             g.selectAll("circle").data(filtered).join("circle")
                 .attr("cx", d => x(d.Income))
                 .attr("cy", d => y(d.PurchaseAmount))
                 .attr("r", 0)
-                .attr("fill", d => color(d.PaymentMethod))
+                .attr("fill", "teal")
                 .attr("opacity", 0.7)
-                .transition().duration(800).attr("r", 4);
+                .transition().duration(800)
+                .attr("r", 4);
 
             g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
             g.append("g").call(d3.axisLeft(y));
             svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
                 .attr("text-anchor", "middle").style("font-size", "16px").text("Income vs Purchase Amount");
-        }
-
-        function drawLineChart(filtered) {
-            const id = "lineChart";
-            d3.select(`#${id}`).html("");
-            if (filtered.length === 0) { showNoData(id); return; }
-            const svg = d3.select(`#${id}`).append("svg"),
-                  margin = {top: 20, right: 20, bottom: 50, left: 50},
-                  width = svg.node().clientWidth - margin.left - margin.right,
-                  height = svg.node().clientHeight - margin.top - margin.bottom,
-                  g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-            const x = d3.scaleLinear().domain(d3.extent(filtered, d => d.Age)).nice().range([0, width]);
-            const y = d3.scaleLinear().domain(d3.extent(filtered, d => d.PurchaseAmount)).nice().range([height, 0]);
-            const line = d3.line().x(d => x(d.Age)).y(d => y(d.PurchaseAmount));
-            g.append("path").datum(filtered.sort((a,b) => a.Age-b.Age))
-                .attr("fill", "none")
-                .attr("stroke", "tomato")
-                .attr("stroke-width", 2)
-                .attr("d", line)
-                .attr("stroke-dasharray", function() { return this.getTotalLength(); })
-                .attr("stroke-dashoffset", function() { return this.getTotalLength(); })
-                .transition().duration(1000)
-                .attr("stroke-dashoffset", 0);
-
-            g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
-            g.append("g").call(d3.axisLeft(y));
-            svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
-                .attr("text-anchor", "middle").style("font-size", "16px").text("Age vs Purchase Amount");
-        }
-
-        function drawDonutChart(filtered) {
-            const id = "donutChart";
-            d3.select(`#${id}`).html("");
-            if (filtered.length === 0) { showNoData(id); return; }
-            const svg = d3.select(`#${id}`).append("svg"),
-                  width = svg.node().clientWidth,
-                  height = svg.node().clientHeight,
-                  radius = Math.min(width, height) / 2 - 20,
-                  g = svg.append("g").attr("transform", `translate(${width/2},${height/2})`);
-            const familySizeCounts = d3.rollup(filtered, v => v.length, d => d.FamilySize);
-            const pie = d3.pie().value(d => d[1]);
-            const arc = d3.arc().innerRadius(radius/2).outerRadius(radius);
-            const color = d3.scaleOrdinal(d3.schemeTableau10);
-            g.selectAll("path").data(pie(Array.from(familySizeCounts))).join("path")
-                .attr("d", arc)
-                .attr("fill", d => color(d.data[0]))
-                .transition().duration(800);
-            svg.append("text").attr("x", width/2).attr("y", 15)
-                .attr("text-anchor", "middle").style("font-size", "16px").text("Family Size Distribution");
         }
     </script>
 </body>
