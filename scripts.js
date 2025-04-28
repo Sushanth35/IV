@@ -5,7 +5,7 @@ const tooltip = d3.select("body")
   .append("div")
   .attr("class", "tooltip");
 
-d3.csv("data/a1-mutualfunds.csv").then(function(data) {
+d3.csv("a1-mutualfunds.csv").then(function(data) {
     allData = data
         .filter(d => !isNaN(parseFloat(d.YTD)))
         .map(d => ({
