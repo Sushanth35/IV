@@ -2,16 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Grocery Store Survey Visualizations</title>
+    <title>Grocery Store Survey Dashboard</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 20px;
+            text-align: center;
+        }
+        #controls {
+            margin-bottom: 30px;
+        }
+        #charts {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
         }
         .chart {
-            margin: 40px auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fafafa;
         }
         svg {
             overflow: visible;
@@ -25,7 +36,7 @@
         .tooltip {
             position: absolute;
             background-color: white;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
             padding: 6px;
             font-size: 12px;
             border-radius: 4px;
@@ -36,20 +47,63 @@
 </head>
 <body>
 
-    <h1>Grocery Store Survey Visualizations</h1>
+    <h1>Grocery Store Survey Dashboard</h1>
 
-    <div id="barChart1" class="chart"></div>
-    <div id="pieChart" class="chart"></div>
-    <div id="barChart2" class="chart"></div>
+    <div id="controls">
+        <label for="chainSelect">Filter by Chain:</label>
+        <select id="chainSelect">
+            <option value="All">All</option>
+        </select>
+    </div>
+
+    <div id="charts">
+        <div id="barChart1" class="chart"></div>
+        <div id="pieChart" class="chart"></div>
+        <div id="barChart2" class="chart"></div>
+    </div>
 
     <script>
         const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+        let allData = [];
 
         d3.csv("a1-grocerystoresurvey.csv", d3.autoType).then(function(dataRaw) {
-            // Skip the first junk row manually
-            const data = dataRaw.slice(1);
+            allData = dataRaw.slice(1); // skip junk row
+            populateChainFilter();
+            updateCharts("All");
+        });
 
-            // BAR CHART 1: Average Purchase Amount by Payment Method
+        function populateChainFilter() {
+            const chains = Array.from(new Set(allData.map(d => d.Chain))).filter(d => d);
+            chains.sort();
+            chains.forEach(chain => {
+                d3.select("#chainSelect")
+                  .append("option")
+                  .attr("value", chain)
+                  .text(chain);
+            });
+
+            d3.select("#chainSelect").on("change", function() {
+                const selectedChain = this.value;
+                updateCharts(selectedChain);
+            });
+        }
+
+        function updateCharts(chainFilter) {
+            let data = allData;
+            if (chainFilter !== "All") {
+                data = data.filter(d => d.Chain === chainFilter);
+            }
+
+            d3.select("#barChart1").html("");
+            d3.select("#pieChart").html("");
+            d3.select("#barChart2").html("");
+
+            drawPurchaseByPayment(data);
+            drawGenderPieChart(data);
+            drawIncomeByChain(data);
+        }
+
+        function drawPurchaseByPayment(data) {
             const purchaseByPayment = d3.rollup(
                 data,
                 v => d3.mean(v, d => d.PurchaseAmount),
@@ -60,15 +114,16 @@
 
             drawBarChart({
                 id: "barChart1",
-                title: "Average Purchase Amount by Payment Method",
+                title: "Avg Purchase by Payment",
                 data: purchaseData,
                 xKey: "PaymentMethod",
                 yKey: "AvgPurchase",
-                width: 700,
-                height: 400
+                width: 300,
+                height: 300
             });
+        }
 
-            // PIE CHART: Gender Distribution
+        function drawGenderPieChart(data) {
             const genderCount = d3.rollup(
                 data,
                 v => v.length,
@@ -83,11 +138,12 @@
                 data: genderData,
                 key: "Gender",
                 value: "Count",
-                width: 400,
-                height: 400
+                width: 300,
+                height: 300
             });
+        }
 
-            // BAR CHART 2: Average Income by Chain
+        function drawIncomeByChain(data) {
             const incomeByChain = d3.rollup(
                 data,
                 v => d3.mean(v, d => d.Income),
@@ -98,17 +154,17 @@
 
             drawBarChart({
                 id: "barChart2",
-                title: "Average Income by Chain",
+                title: "Avg Income by Chain",
                 data: incomeData,
                 xKey: "Chain",
                 yKey: "AvgIncome",
-                width: 700,
-                height: 400
+                width: 300,
+                height: 300
             });
-        });
+        }
 
         function drawBarChart({ id, title, data, xKey, yKey, width, height }) {
-            const margin = { top: 50, right: 20, bottom: 120, left: 70 };
+            const margin = { top: 40, right: 20, bottom: 90, left: 50 };
             const svg = d3.select(`#${id}`)
                 .append("svg")
                 .attr("width", width)
@@ -136,13 +192,13 @@
                 .attr("width", x.bandwidth())
                 .on("mouseover", (event, d) => {
                     tooltip.style("display", "block")
-                           .html(`${d[xKey]}<br>${yKey}: ${d[yKey].toFixed(2)}`)
-                           .style("left", (event.pageX + 10) + "px")
-                           .style("top", (event.pageY - 20) + "px");
+                        .html(`${d[xKey]}<br>${yKey}: ${d[yKey].toFixed(2)}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
                 })
                 .on("mousemove", event => {
                     tooltip.style("left", (event.pageX + 10) + "px")
-                           .style("top", (event.pageY - 20) + "px");
+                        .style("top", (event.pageY - 20) + "px");
                 })
                 .on("mouseout", () => tooltip.style("display", "none"));
 
@@ -151,7 +207,8 @@
                 .call(d3.axisBottom(x))
                 .selectAll("text")
                 .attr("transform", "rotate(-50)")
-                .style("text-anchor", "end");
+                .style("text-anchor", "end")
+                .style("font-size", "10px");
 
             svg.append("g")
                 .attr("transform", `translate(${margin.left},0)`)
@@ -161,7 +218,7 @@
                 .attr("x", width / 2)
                 .attr("y", margin.top / 2)
                 .attr("text-anchor", "middle")
-                .style("font-size", "16px")
+                .style("font-size", "14px")
                 .text(title);
         }
 
@@ -187,19 +244,15 @@
                 .attr('fill', d => color(d.data[key]))
                 .on("mouseover", (event, d) => {
                     tooltip.style("display", "block")
-                           .html(`${d.data[key]}<br>${value}: ${d.data[value]}`)
-                           .style("left", (event.pageX + 10) + "px")
-                           .style("top", (event.pageY - 20) + "px");
+                        .html(`${d.data[key]}<br>${value}: ${d.data[value]}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
                 })
                 .on("mousemove", event => {
                     tooltip.style("left", (event.pageX + 10) + "px")
-                           .style("top", (event.pageY - 20) + "px");
+                        .style("top", (event.pageY - 20) + "px");
                 })
                 .on("mouseout", () => tooltip.style("display", "none"));
-
-            d3.select(`#${id}`)
-              .append("h3")
-              .text(title);
         }
     </script>
 
