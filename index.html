@@ -14,6 +14,7 @@
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
     .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
     svg { width: 100%; height: 400px; background: transparent; }
+    text { fill: white; }
     .legend-container { text-align: center; margin-top: 5px; font-size: 12px; color: white; }
     .legend-item { display: inline-block; margin: 0 10px; }
     .legend-color { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: middle; }
@@ -22,7 +23,9 @@
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
   </style>
 </head>
+
 <body>
+
   <div class="header">
     <h1>Grocery Store Survey Dashboard</h1>
   </div>
@@ -52,7 +55,7 @@
 let data;
 const tooltip = d3.select("#tooltip");
 
-// Load the data
+// Load data
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
   data.forEach(d => {
@@ -109,6 +112,7 @@ function drawBarChart(filtered) {
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
   const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
   const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
+
   g.selectAll("rect").data(Array.from(avgPurchase)).join("rect")
     .attr("x", d => x(d[0]))
     .attr("y", d => y(d[1]))
@@ -125,8 +129,13 @@ function drawBarChart(filtered) {
 
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
-  svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
-    .attr("text-anchor", "middle").style("font-size", "16px").text("Average Purchase by Chain");
+
+  svg.append("text")
+    .attr("x", width/2 + margin.left)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("Average Purchase by Chain");
 }
 
 function drawPieChart(filtered) {
@@ -141,7 +150,8 @@ function drawPieChart(filtered) {
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
   const arc = d3.arc().innerRadius(0).outerRadius(radius);
-  const color = d3.scaleOrdinal().domain(Array.from(genderCounts.keys())).range(["#FF7043", "#AB47BC", "#26A69A", "#29B6F6"]);
+  const color = d3.scaleOrdinal().domain(Array.from(genderCounts.keys()))
+                  .range(["#FF7043", "#AB47BC", "#26A69A", "#29B6F6"]);
 
   g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
     .attr("d", arc)
@@ -154,8 +164,13 @@ function drawPieChart(filtered) {
     })
     .on("mouseout", () => tooltip.style("opacity", 0));
 
-  svg.append("text").attr("x", width/2).attr("y", 15)
-    .attr("text-anchor", "middle").style("font-size", "16px").text("Gender Distribution");
+  svg.append("text")
+    .attr("x", width/2)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("fill", "white")  <!-- this ensures pie chart title white -->
+    .text("Gender Distribution");
 
   const legend = d3.select(`#${id}`).append("div").attr("class", "legend-container");
   genderCounts.forEach((_, gender) => {
@@ -175,6 +190,7 @@ function drawScatterPlot(filtered) {
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
   const x = d3.scaleLinear().domain(d3.extent(filtered, d => d.Income)).nice().range([0, width]);
   const y = d3.scaleLinear().domain(d3.extent(filtered, d => d.PurchaseAmount)).nice().range([height, 0]);
+
   g.selectAll("circle").data(filtered).join("circle")
     .attr("cx", d => x(d.Income))
     .attr("cy", d => y(d.PurchaseAmount))
@@ -191,11 +207,13 @@ function drawScatterPlot(filtered) {
 
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
-  svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
-    .attr("text-anchor", "middle").style("font-size", "16px").text("Income vs Purchase Amount");
 
-  d3.select(`#${id}`).append("div").attr("class", "legend-container")
-    .html(`<div class='legend-item'><span class='legend-color' style='background:#00E5FF;'></span>Income vs Purchase Amount</div>`);
+  svg.append("text")
+    .attr("x", width/2 + margin.left)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("Income vs Purchase Amount");
 }
 </script>
 
