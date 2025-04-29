@@ -14,7 +14,6 @@
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
     .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
     svg { width: 100%; height: 400px; background: transparent; }
-    text { fill: white; }
     .legend-container { text-align: center; margin-top: 5px; font-size: 12px; color: white; }
     .legend-item { display: inline-block; margin: 0 10px; }
     .legend-color { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: middle; }
@@ -23,9 +22,7 @@
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
   </style>
 </head>
-
 <body>
-
   <div class="header">
     <h1>Grocery Store Survey Dashboard</h1>
   </div>
@@ -55,7 +52,7 @@
 let data;
 const tooltip = d3.select("#tooltip");
 
-// Load data
+// Load the data
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
   data.forEach(d => {
@@ -90,7 +87,7 @@ function filterData() {
 }
 
 function showNoData(containerId) {
-  d3.select(`#${containerId}`).html('<div class="no-data">No data available</div>');
+  d3.select(#${containerId}).html('<div class="no-data">No data available</div>');
 }
 
 function updateVisuals() {
@@ -102,17 +99,16 @@ function updateVisuals() {
 
 function drawBarChart(filtered) {
   const id = "barChart";
-  d3.select(`#${id}`).html("");
+  d3.select(#${id}).html("");
   if (filtered.length === 0) { showNoData(id); return; }
-  const svg = d3.select(`#${id}`).append("svg"),
+  const svg = d3.select(#${id}).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        g = svg.append("g").attr("transform", translate(${margin.left},${margin.top}));
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
   const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
   const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
-
   g.selectAll("rect").data(Array.from(avgPurchase)).join("rect")
     .attr("x", d => x(d[0]))
     .attr("y", d => y(d[1]))
@@ -120,77 +116,65 @@ function drawBarChart(filtered) {
     .attr("height", d => height - y(d[1]))
     .attr("fill", "#4FC3F7")
     .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
+      tooltip.style("opacity", 1).html(<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)});
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", () => tooltip.style("opacity", 0));
 
-  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
+  g.append("g").attr("transform", translate(0,${height})).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
-
-  svg.append("text")
-    .attr("x", width/2 + margin.left)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Average Purchase by Chain");
+  svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
+    .attr("text-anchor", "middle").style("font-size", "16px").text("Average Purchase by Chain");
 }
 
 function drawPieChart(filtered) {
   const id = "pieChart";
-  d3.select(`#${id}`).html("");
+  d3.select(#${id}).html("");
   if (filtered.length === 0) { showNoData(id); return; }
-  const svg = d3.select(`#${id}`).append("svg"),
+  const svg = d3.select(#${id}).append("svg"),
         width = svg.node().clientWidth,
         height = svg.node().clientHeight,
         radius = Math.min(width, height) / 2 - 20,
-        g = svg.append("g").attr("transform", `translate(${width/2},${height/2})`);
+        g = svg.append("g").attr("transform", translate(${width/2},${height/2}));
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
   const arc = d3.arc().innerRadius(0).outerRadius(radius);
-  const color = d3.scaleOrdinal().domain(Array.from(genderCounts.keys()))
-                  .range(["#FF7043", "#AB47BC", "#26A69A", "#29B6F6"]);
+  const color = d3.scaleOrdinal().domain(Array.from(genderCounts.keys())).range(["#FF7043", "#AB47BC", "#26A69A", "#29B6F6"]);
 
   g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
     .attr("d", arc)
     .attr("fill", d => color(d.data[0]))
     .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
+      tooltip.style("opacity", 1).html(<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]});
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", () => tooltip.style("opacity", 0));
 
-  svg.append("text")
-    .attr("x", width/2)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .style("fill", "white")  <!-- this ensures pie chart title white -->
-    .text("Gender Distribution");
+  svg.append("text").attr("x", width/2).attr("y", 15)
+    .attr("text-anchor", "middle").style("font-size", "16px").text("Gender Distribution");
 
-  const legend = d3.select(`#${id}`).append("div").attr("class", "legend-container");
+  const legend = d3.select(#${id}).append("div").attr("class", "legend-container");
   genderCounts.forEach((_, gender) => {
     legend.append("div").attr("class", "legend-item")
-      .html(`<span class='legend-color' style='background:${color(gender)};'></span>${gender}`);
+      .html(<span class='legend-color' style='background:${color(gender)};'></span>${gender});
   });
 }
 
 function drawScatterPlot(filtered) {
   const id = "scatterPlot";
-  d3.select(`#${id}`).html("");
+  d3.select(#${id}).html("");
   if (filtered.length === 0) { showNoData(id); return; }
-  const svg = d3.select(`#${id}`).append("svg"),
+  const svg = d3.select(#${id}).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        g = svg.append("g").attr("transform", translate(${margin.left},${margin.top}));
   const x = d3.scaleLinear().domain(d3.extent(filtered, d => d.Income)).nice().range([0, width]);
   const y = d3.scaleLinear().domain(d3.extent(filtered, d => d.PurchaseAmount)).nice().range([height, 0]);
-
   g.selectAll("circle").data(filtered).join("circle")
     .attr("cx", d => x(d.Income))
     .attr("cy", d => y(d.PurchaseAmount))
@@ -198,22 +182,20 @@ function drawScatterPlot(filtered) {
     .attr("fill", "#00E5FF")
     .attr("opacity", 0.7)
     .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(`<b>Income:</b> ${d.Income}<br><b>Purchase:</b> ${d.PurchaseAmount}<br><b>Gender:</b> ${d.Gender}`);
+      tooltip.style("opacity", 1).html(<b>Income:</b> ${d.Income}<br><b>Purchase:</b> ${d.PurchaseAmount}<br><b>Gender:</b> ${d.Gender});
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", () => tooltip.style("opacity", 0));
 
-  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
+  g.append("g").attr("transform", translate(0,${height})).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
+  svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
+    .attr("text-anchor", "middle").style("font-size", "16px").text("Income vs Purchase Amount");
 
-  svg.append("text")
-    .attr("x", width/2 + margin.left)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Income vs Purchase Amount");
+  d3.select(#${id}).append("div").attr("class", "legend-container")
+    .html(<div class='legend-item'><span class='legend-color' style='background:#00E5FF;'></span>Income vs Purchase Amount</div>);
 }
 </script>
 
