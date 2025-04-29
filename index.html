@@ -51,17 +51,17 @@ let data;
 const tooltip = d3.select("#tooltip");
 
 // Load the data
-  d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
-    data = rawData;
-    data.forEach(d => {
-      d.Age = +d.Age;
-      d.Income = +d.Income;
-      d.PurchaseAmount = +d.PurchaseAmount;
-      d.FamilySize = +d.FamilySize;
-    });
-    initFilters();
-    updateVisuals();
+d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
+  data = rawData;
+  data.forEach(d => {
+    d.Age = +d.Age;
+    d.Income = +d.Income;
+    d.PurchaseAmount = +d.PurchaseAmount;
+    d.FamilySize = +d.FamilySize;
   });
+  initFilters();
+  updateVisuals();
+});
 
 function initFilters() {
   let genders = Array.from(new Set(data.map(d => d.Gender)));
@@ -109,13 +109,18 @@ function drawBarChart(filtered) {
   const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
   g.selectAll("rect").data(Array.from(avgPurchase)).join("rect")
     .attr("x", d => x(d[0]))
-    .attr("y", height)
-    .attr("width", x.bandwidth())
-    .attr("height", 0)
-    .attr("fill", "steelblue")
-    .transition().duration(800)
     .attr("y", d => y(d[1]))
-    .attr("height", d => height - y(d[1]));
+    .attr("width", x.bandwidth())
+    .attr("height", d => height - y(d[1]))
+    .attr("fill", "steelblue")
+    .on("mouseover", (event, d) => {
+      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", () => tooltip.style("opacity", 0));
+
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
   svg.append("text").attr("x", width/2 + margin.left).attr("y", 15)
@@ -139,7 +144,13 @@ function drawPieChart(filtered) {
   g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
     .attr("d", arc)
     .attr("fill", d => color(d.data[0]))
-    .transition().duration(800);
+    .on("mouseover", (event, d) => {
+      tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", () => tooltip.style("opacity", 0));
 
   svg.append("text").attr("x", width/2).attr("y", 15)
     .attr("text-anchor", "middle").style("font-size", "16px").text("Gender Distribution");
@@ -165,11 +176,16 @@ function drawScatterPlot(filtered) {
   g.selectAll("circle").data(filtered).join("circle")
     .attr("cx", d => x(d.Income))
     .attr("cy", d => y(d.PurchaseAmount))
-    .attr("r", 0)
+    .attr("r", 4)
     .attr("fill", "teal")
     .attr("opacity", 0.7)
-    .transition().duration(800)
-    .attr("r", 4);
+    .on("mouseover", (event, d) => {
+      tooltip.style("opacity", 1).html(`<b>Income:</b> ${d.Income}<br><b>Purchase:</b> ${d.PurchaseAmount}<br><b>Gender:</b> ${d.Gender}`);
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", () => tooltip.style("opacity", 0));
 
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
@@ -177,9 +193,8 @@ function drawScatterPlot(filtered) {
     .attr("text-anchor", "middle").style("font-size", "16px").text("Income vs Purchase Amount");
 
   d3.select(`#${id}`).append("div").attr("class", "legend-container")
-    .html(`<div class='legend-item'><span class='legend-color' style='background:teal;'></span> Income vs Purchase Amount</div>`);
+    .html(`<div class='legend-item'><span class='legend-color' style='background:teal;'></span>Income vs Purchase Amount</div>`);
 }
 </script>
-
 </body>
 </html>
