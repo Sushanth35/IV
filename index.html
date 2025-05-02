@@ -42,7 +42,7 @@
   <div class="charts-row">
     <div class="chart" id="barChart"></div>
     <div class="chart" id="pieChart"></div>
-    <div class="chart" id="boxPlot"></div> <!-- Replaced scatter plot with box plot -->
+    <div class="chart" id="boxPlot"></div> <!-- Box plot for visualization -->
   </div>
 
   <div class="footer">
@@ -58,7 +58,7 @@ const tooltip = d3.select("#tooltip");
 // Load data
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
-  console.log("Data Loaded: ", data); // Check the data loaded from the CSV
+  console.log("Data Loaded: ", data); // Log the data loaded from the CSV
 
   data.forEach(d => {
     d.Age = +d.Age;
