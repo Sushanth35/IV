@@ -42,14 +42,12 @@
   </div>
   <div id="tooltip" class="tooltip"></div>
 <script>
-// Existing logic...
-// Replace only drawBoxPlot function with animated transitions
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
   d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
   const svg = d3.select(`#${id}`).append("svg"),
-        margin = {top: 20, right: 20, bottom: 50, left: 50},
+        margin = {top: 20, right: 100, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
@@ -107,6 +105,32 @@ function drawBoxPlot(filtered) {
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
     .text("Purchase Amount Distribution by Chain");
+
+  const legend = svg.append("g")
+    .attr("transform", `translate(${width + margin.left + 10}, 40)`);
+
+  legend.append("rect")
+    .attr("x", 0).attr("y", 0).attr("width", 15).attr("height", 15).attr("fill", "#4FC3F7");
+  legend.append("text")
+    .attr("x", 20).attr("y", 12)
+    .style("fill", "white")
+    .text("IQR (Q1 to Q3)");
+
+  legend.append("line")
+    .attr("x1", 0).attr("x2", 15).attr("y1", 30).attr("y2", 30)
+    .attr("stroke", "#FF7043").attr("stroke-width", 2);
+  legend.append("text")
+    .attr("x", 20).attr("y", 34)
+    .style("fill", "white")
+    .text("Median & Whiskers");
+
+  legend.append("circle")
+    .attr("cx", 7).attr("cy", 50).attr("r", 5)
+    .attr("fill", "#FF7043");
+  legend.append("text")
+    .attr("x", 20).attr("y", 55)
+    .style("fill", "white")
+    .text("Outliers");
 }
 </script>
 </body>
