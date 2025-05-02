@@ -97,62 +97,16 @@ function updateVisuals() {
   drawScatterPlot(filtered);
 }
 
-function drawBarChart(filtered) {
-  const id = "barChart";
-  d3.select(`#${id}`).html("");
-  if (filtered.length === 0) { showNoData(id); return; }
-
-  const svg = d3.select(`#${id}`).append("svg"),
-        margin = {top: 20, right: 20, bottom: 50, left: 50},
-        width = svg.node().clientWidth - margin.left - margin.right,
-        height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-  const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
-  const topChains = Array.from(avgPurchase).slice(0, 3);  // Show top 3 chains
-
-  const x = d3.scaleBand().domain(topChains.map(d => d[0])).range([0, width]).padding(0.3);
-  const y = d3.scaleLinear().domain([0, d3.max(topChains, d => d[1])]).nice().range([height, 0]);
-
-  const bars = g.selectAll("rect").data(topChains).join("rect")
-    .attr("x", d => x(d[0]))
-    .attr("y", d => y(d[1]))
-    .attr("width", x.bandwidth())
-    .attr("height", d => height - y(d[1]))
-    .attr("fill", "#4FC3F7")
-    .style("transition", "all 0.3s ease-in-out") // Add smooth transition
-    .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
-      d3.select(event.target).style("fill", "#FF7043"); // Highlight bar on hover
-    })
-    .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", (event) => {
-      tooltip.style("opacity", 0);
-      d3.select(event.target).style("fill", "#4FC3F7"); // Reset bar color
-    });
-
-  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
-  g.append("g").call(d3.axisLeft(y));
-
-  svg.append("text")
-    .attr("x", width/2 + margin.left)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Average Purchase by Chain");
-}
-
 function drawPieChart(filtered) {
   const id = "pieChart";
-  d3.select(`#${id}`).html("");
+  d3.select(`#${id}`).html("");  // Clear any existing chart
   if (filtered.length === 0) { showNoData(id); return; }
+
   const svg = d3.select(`#${id}`).append("svg"),
         width = svg.node().clientWidth,
         height = svg.node().clientHeight,
         radius = Math.min(width, height) / 2 - 20,
-        g = svg.append("g").attr("transform", `translate(${width/2},${height/2})`);
+        g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
@@ -161,74 +115,77 @@ function drawPieChart(filtered) {
                   .domain(Array.from(genderCounts.keys()))
                   .range(["#FF7043", "#AB47BC", "#26A69A", "#29B6F6"]);
 
-  const slices = g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
+  const slices = g.selectAll("path")
+    .data(pie(Array.from(genderCounts)))
+    .join("path")
     .attr("d", arc)
     .attr("fill", d => color(d.data[0]))
-    .style("transition", "all 0.3s ease-in-out") // Add smooth transition
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 2)
+    .style("transition", "all 0.3s ease-in-out")  // Smooth transition
     .on("mouseover", (event, d) => {
       tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
-      d3.select(event.target).style("transform", "scale(1.1)"); // Scale slice on hover
+      d3.select(event.target).style("transform", "scale(1.1)");  // Scale slice on hover
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", (event) => {
       tooltip.style("opacity", 0);
-      d3.select(event.target).style("transform", "scale(1)"); // Reset slice size
+      d3.select(event.target).style("transform", "scale(1)");  // Reset slice size
     });
 
+  g.selectAll("text")
+    .data(pie(Array.from(genderCounts)))
+    .join("text")
+    .attr("transform", d => {
+      const [x, y] = arc.centroid(d);
+      return `translate(${x},${y})`;
+    })
+    .attr("text-anchor", "middle")
+    .style("font-size", "14px")
+    .style("fill", "white")
+    .style("font-weight", "bold")
+    .text(d => `${d.data[0]}: ${d.data[1]}`);
+
+  // Add legend
+  const legend = svg.append("g")
+    .attr("transform", `translate(${width - 160}, 20)`); // Position legend on the right
+
+  let legendItems = legend.selectAll(".legend")
+    .data(Array.from(genderCounts))
+    .join("g")
+    .attr("class", "legend");
+
+  legendItems.append("rect")
+    .attr("x", 0)
+    .attr("y", (d, i) => i * 25)
+    .attr("width", 20)
+    .attr("height", 20)
+    .attr("fill", d => color(d[0]))
+    .style("cursor", "pointer")
+    .on("click", (event, d) => {
+      const selectedGender = d[0];
+      const selectedSlice = svg.selectAll("path").filter(p => p.data[0] === selectedGender);
+      selectedSlice.style("opacity", selectedSlice.style("opacity") === "1" ? 0.3 : 1);  // Toggle visibility
+    });
+
+  legendItems.append("text")
+    .attr("x", 30)
+    .attr("y", (d, i) => i * 25 + 15)
+    .style("fill", "white")
+    .text(d => d[0]);
+
+  // Title for the pie chart
   svg.append("text")
-    .attr("x", width/2)
+    .attr("x", width / 2)
     .attr("y", 15)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
     .text("Gender Distribution");
 }
-
-function drawScatterPlot(filtered) {
-  const id = "scatterPlot";
-  d3.select(`#${id}`).html("");
-  if (filtered.length === 0) { showNoData(id); return; }
-
-  const svg = d3.select(`#${id}`).append("svg"),
-        margin = {top: 20, right: 20, bottom: 50, left: 50},
-        width = svg.node().clientWidth - margin.left - margin.right,
-        height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-  const x = d3.scaleLinear().domain(d3.extent(filtered, d => d.Income)).nice().range([0, width]);
-  const y = d3.scaleLinear().domain(d3.extent(filtered, d => d.PurchaseAmount)).nice().range([height, 0]);
-
-  const points = g.selectAll("circle").data(filtered).join("circle")
-    .attr("cx", d => x(d.Income))
-    .attr("cy", d => y(d.PurchaseAmount))
-    .attr("r", 4)
-    .attr("fill", "#00E5FF")
-    .attr("opacity", 0.7)
-    .style("transition", "all 0.3s ease-in-out") // Add smooth transition
-    .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(`<b>Income:</b> ${d.Income}<br><b>Purchase:</b> ${d.PurchaseAmount}<br><b>Gender:</b> ${d.Gender}`);
-      d3.select(event.target).attr("r", 6).style("fill", "#FF7043"); // Enlarge and highlight point
-    })
-    .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", (event) => {
-      tooltip.style("opacity", 0);
-      d3.select(event.target).attr("r", 4).style("fill", "#00E5FF"); // Reset point size and color
-    });
-
-  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
-  g.append("g").call(d3.axisLeft(y));
-
-  svg.append("text")
-    .attr("x", width/2 + margin.left)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Income vs Purchase Amount");
-}
 </script>
 
 </body>
 </html>
+
