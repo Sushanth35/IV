@@ -55,14 +55,24 @@ const tooltip = d3.select("#tooltip");
 // Load data
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
+  console.log("Data Loaded: ", data); // Check the data loaded from the CSV
+
   data.forEach(d => {
     d.Age = +d.Age;
     d.Income = +d.Income;
     d.PurchaseAmount = +d.PurchaseAmount;
     d.FamilySize = +d.FamilySize;
   });
+  
+  // Debug: Log unique values for filters
+  console.log('Unique Genders:', Array.from(new Set(data.map(d => d.Gender))));
+  console.log('Unique Payment Methods:', Array.from(new Set(data.map(d => d.PaymentMethod))));
+  console.log('Unique Chains:', Array.from(new Set(data.map(d => d.Chain))));
+
   initFilters();
   updateVisuals();
+}).catch(err => {
+  console.error('Error loading CSV file: ', err); // Error handling for data loading
 });
 
 function initFilters() {
@@ -92,9 +102,57 @@ function showNoData(containerId) {
 
 function updateVisuals() {
   let filtered = filterData();
+  console.log("Filtered Data: ", filtered); // Log filtered data for debugging
   drawBarChart(filtered);
   drawPieChart(filtered);
   drawScatterPlot(filtered);
+}
+
+function drawBarChart(filtered) {
+  const id = "barChart";
+  d3.select(`#${id}`).html("");
+  if (filtered.length === 0) { showNoData(id); return; }
+
+  const svg = d3.select(`#${id}`).append("svg"),
+        margin = {top: 20, right: 20, bottom: 50, left: 50},
+        width = svg.node().clientWidth - margin.left - margin.right,
+        height = svg.node().clientHeight - margin.top - margin.bottom,
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
+  const topChains = Array.from(avgPurchase).slice(0, 3);  // Show top 3 chains
+
+  const x = d3.scaleBand().domain(topChains.map(d => d[0])).range([0, width]).padding(0.3);
+  const y = d3.scaleLinear().domain([0, d3.max(topChains, d => d[1])]).nice().range([height, 0]);
+
+  const bars = g.selectAll("rect").data(topChains).join("rect")
+    .attr("x", d => x(d[0]))
+    .attr("y", d => y(d[1]))
+    .attr("width", x.bandwidth())
+    .attr("height", d => height - y(d[1]))
+    .attr("fill", "#4FC3F7")
+    .style("transition", "all 0.3s ease-in-out") // Smooth transition
+    .on("mouseover", (event, d) => {
+      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
+      d3.select(event.target).style("fill", "#FF7043"); // Highlight bar on hover
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).style("fill", "#4FC3F7"); // Reset bar color
+    });
+
+  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
+  g.append("g").call(d3.axisLeft(y));
+
+  svg.append("text")
+    .attr("x", width/2 + margin.left)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("Average Purchase by Chain");
 }
 
 function drawPieChart(filtered) {
@@ -188,4 +246,3 @@ function drawPieChart(filtered) {
 
 </body>
 </html>
-
