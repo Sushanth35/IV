@@ -60,13 +60,19 @@ d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
   console.log("Data Loaded: ", data); // Log the data loaded from the CSV
 
+  // Check the loaded data
+  if (!data || data.length === 0) {
+    console.error("No data loaded.");
+    return;
+  }
+
   data.forEach(d => {
     d.Age = +d.Age;
     d.Income = +d.Income;
     d.PurchaseAmount = +d.PurchaseAmount;
     d.FamilySize = +d.FamilySize;
   });
-  
+
   // Debug: Log unique values for filters
   console.log('Unique Genders:', Array.from(new Set(data.map(d => d.Gender))));
   console.log('Unique Payment Methods:', Array.from(new Set(data.map(d => d.PaymentMethod))));
@@ -106,6 +112,10 @@ function showNoData(containerId) {
 function updateVisuals() {
   let filtered = filterData();
   console.log("Filtered Data: ", filtered); // Log filtered data for debugging
+  if (filtered.length === 0) {
+    showNoData('boxPlot'); // If no data, show "No data available" message
+    return;
+  }
   drawBarChart(filtered);
   drawPieChart(filtered);
   drawBoxPlot(filtered); // Updated to call the box plot function
@@ -133,6 +143,10 @@ function drawBoxPlot(filtered) {
     .domain([0, d3.max(filtered, d => d.PurchaseAmount)])
     .nice()
     .range([height, 0]);
+
+  // Debug: Check the scales
+  console.log("X scale domain:", x.domain());
+  console.log("Y scale domain:", y.domain());
 
   // Draw X axis
   g.append("g")
@@ -228,3 +242,4 @@ function drawBoxPlot(filtered) {
 
 </body>
 </html>
+
