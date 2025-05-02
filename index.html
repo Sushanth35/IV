@@ -15,9 +15,6 @@
     .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
     svg { width: 100%; height: 400px; background: transparent; }
     text, .tick text { fill: white; } /* Axes and titles in white */
-    .legend-container { text-align: center; margin-top: 5px; font-size: 12px; color: white; }
-    .legend-item { display: inline-block; margin: 0 10px; }
-    .legend-color { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: middle; }
     .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: gray; }
     .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 12px; background: lightsteelblue; border-radius: 5px; pointer-events: none; opacity: 0; color: black; }
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
@@ -111,28 +108,30 @@ function drawBarChart(filtered) {
         height = svg.node().clientHeight - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Group data by Chain and calculate the average PurchaseAmount for each Chain
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
-
-  // Ensure we have at least 3 chains to display (for the example)
-  const topChains = Array.from(avgPurchase).slice(0, 3);  // Get top 3 chains for simplicity
+  const topChains = Array.from(avgPurchase).slice(0, 3);  // Show top 3 chains
 
   const x = d3.scaleBand().domain(topChains.map(d => d[0])).range([0, width]).padding(0.3);
   const y = d3.scaleLinear().domain([0, d3.max(topChains, d => d[1])]).nice().range([height, 0]);
 
-  g.selectAll("rect").data(topChains).join("rect")
+  const bars = g.selectAll("rect").data(topChains).join("rect")
     .attr("x", d => x(d[0]))
     .attr("y", d => y(d[1]))
     .attr("width", x.bandwidth())
     .attr("height", d => height - y(d[1]))
     .attr("fill", "#4FC3F7")
+    .style("transition", "all 0.3s ease-in-out") // Add smooth transition
     .on("mouseover", (event, d) => {
       tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
+      d3.select(event.target).style("fill", "#FF7043"); // Highlight bar on hover
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).style("fill", "#4FC3F7"); // Reset bar color
+    });
 
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
@@ -154,6 +153,7 @@ function drawPieChart(filtered) {
         height = svg.node().clientHeight,
         radius = Math.min(width, height) / 2 - 20,
         g = svg.append("g").attr("transform", `translate(${width/2},${height/2})`);
+
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
   const arc = d3.arc().innerRadius(0).outerRadius(radius);
@@ -161,16 +161,21 @@ function drawPieChart(filtered) {
                   .domain(Array.from(genderCounts.keys()))
                   .range(["#FF7043", "#AB47BC", "#26A69A", "#29B6F6"]);
 
-  g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
+  const slices = g.selectAll("path").data(pie(Array.from(genderCounts))).join("path")
     .attr("d", arc)
     .attr("fill", d => color(d.data[0]))
+    .style("transition", "all 0.3s ease-in-out") // Add smooth transition
     .on("mouseover", (event, d) => {
       tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
+      d3.select(event.target).style("transform", "scale(1.1)"); // Scale slice on hover
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).style("transform", "scale(1)"); // Reset slice size
+    });
 
   svg.append("text")
     .attr("x", width/2)
@@ -184,27 +189,34 @@ function drawScatterPlot(filtered) {
   const id = "scatterPlot";
   d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
+
   const svg = d3.select(`#${id}`).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
   const x = d3.scaleLinear().domain(d3.extent(filtered, d => d.Income)).nice().range([0, width]);
   const y = d3.scaleLinear().domain(d3.extent(filtered, d => d.PurchaseAmount)).nice().range([height, 0]);
 
-  g.selectAll("circle").data(filtered).join("circle")
+  const points = g.selectAll("circle").data(filtered).join("circle")
     .attr("cx", d => x(d.Income))
     .attr("cy", d => y(d.PurchaseAmount))
     .attr("r", 4)
     .attr("fill", "#00E5FF")
     .attr("opacity", 0.7)
+    .style("transition", "all 0.3s ease-in-out") // Add smooth transition
     .on("mouseover", (event, d) => {
       tooltip.style("opacity", 1).html(`<b>Income:</b> ${d.Income}<br><b>Purchase:</b> ${d.PurchaseAmount}<br><b>Gender:</b> ${d.Gender}`);
+      d3.select(event.target).attr("r", 6).style("fill", "#FF7043"); // Enlarge and highlight point
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).attr("r", 4).style("fill", "#00E5FF"); // Reset point size and color
+    });
 
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
