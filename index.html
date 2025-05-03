@@ -14,7 +14,7 @@
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
     .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
     svg { width: 100%; height: 400px; background: transparent; }
-    text, .tick text { fill: white; }
+    text, .tick text { fill: white; } /* Axes and titles in white */
     .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: gray; }
     .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 12px; background: lightsteelblue; border-radius: 5px; pointer-events: none; opacity: 0; color: black; }
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
@@ -178,10 +178,10 @@ function drawPieChart(filtered) {
 
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
-  pieChartArc = d3.arc().innerRadius(0).outerRadius(radius * pieChartZoom);
+  pieChartArc = d3.arc().innerRadius(0).outerRadius(radius * pieChartZoom); 
   pieChartScale = d3.scaleOrdinal()
                   .domain(Array.from(genderCounts.keys()))
-                  .range(["#9C27B0", "#FF9800"]);
+                  .range(["#9C27B0", "#FF9800"]); 
 
   g.selectAll("path")
     .data(pie(Array.from(genderCounts)))
@@ -234,17 +234,15 @@ function drawBoxPlot(filtered) {
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
   
-  const x = d3.scaleLinear()
+  const x = d3.scaleBand()
+    .domain(chainGroups.map(d => d[0]))
+    .range([0, width])
+    .padding(0.2);
+
+  const y = d3.scaleLinear()
     .domain([0, d3.max(filtered, d => d.PurchaseAmount)])
     .nice()
-    .range([0, width]);
-
-  const y = d3.scaleBand()
-    .domain(chainGroups.map(d => d[0]))
-    .range([0, height])
-    .padding(0.3);
-
-  const boxWidth = y.bandwidth();
+    .range([height, 0]);
 
   g.append("g")
     .attr("transform", `translate(0,${height})`)
@@ -252,6 +250,8 @@ function drawBoxPlot(filtered) {
 
   g.append("g")
     .call(d3.axisLeft(y));
+
+  const boxWidth = x.bandwidth();
 
   chainGroups.forEach(([chain, group]) => {
     const q1 = d3.quantile(group.map(d => d.PurchaseAmount).sort(d3.ascending), 0.25);
@@ -262,10 +262,10 @@ function drawBoxPlot(filtered) {
     const upperWhisker = Math.min(d3.max(group.map(d => d.PurchaseAmount)), q3 + 1.5 * iqr);
 
     g.append("rect")
-      .attr("x", 0)
-      .attr("y", y(chain))
-      .attr("width", x(q3) - x(q1))
-      .attr("height", y.bandwidth())
+      .attr("x", x(chain))
+      .attr("y", y(q3))
+      .attr("width", boxWidth)
+      .attr("height", y(q1) - y(q3))
       .attr("fill", "#FF7043")
       .on("mouseover", () => {
         tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
@@ -276,11 +276,11 @@ function drawBoxPlot(filtered) {
       .on("mouseout", () => tooltip.style("opacity", 0));
 
     g.append("line")
-      .attr("x1", x(median))
-      .attr("x2", x(median))
-      .attr("y1", y(chain))
-      .attr("y2", y(chain) + boxWidth)
-      .attr("stroke", "#4FC3F7")
+      .attr("x1", x(chain))
+      .attr("x2", x(chain) + boxWidth)
+      .attr("y1", y(median))
+      .attr("y2", y(median))
+      .attr("stroke", "#FF7043")
       .attr("stroke-width", 2);
   });
 
