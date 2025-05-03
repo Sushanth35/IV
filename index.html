@@ -12,8 +12,8 @@
     label { color: white; }
     select { background-color: black; color: white; border: 1px solid gray; }
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
-    .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
-    svg { width: 100%; height: 400px; background: transparent; }
+    .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; overflow: hidden; }
+    svg { width: 100%; height: 100%; background: transparent; }
     text, .tick text { fill: white; } /* Axes and titles in white */
     .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: gray; }
     .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 12px; background: lightsteelblue; border-radius: 5px; pointer-events: none; opacity: 0; color: black; }
@@ -56,13 +56,6 @@ const tooltip = d3.select("#tooltip");
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
   console.log("Data Loaded: ", data); // Log the data loaded from the CSV
-
-  // Check if data is empty
-  if (!data || data.length === 0) {
-    console.error("No data loaded.");
-    alert("Error: No data loaded.");
-    return;
-  }
 
   data.forEach(d => {
     d.Age = +d.Age;
@@ -115,14 +108,24 @@ function drawBarChart(filtered) {
   const id = "barChart";
   d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
+
   const svg = d3.select(`#${id}`).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
   const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
   const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
+
+  // Zoom functionality
+  const zoom = d3.zoom()
+    .scaleExtent([1, 10])
+    .on("zoom", function(event) {
+      g.attr("transform", event.transform);
+    });
+  svg.call(zoom);
 
   g.selectAll("rect").data(Array.from(avgPurchase)).join("rect")
     .attr("x", d => x(d[0]))
@@ -153,11 +156,13 @@ function drawPieChart(filtered) {
   const id = "pieChart";
   d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
+
   const svg = d3.select(`#${id}`).append("svg"),
         width = svg.node().clientWidth,
         height = svg.node().clientHeight,
         radius = Math.min(width, height) / 2 - 20,
         g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
+
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
   const arc = d3.arc().innerRadius(0).outerRadius(radius);
@@ -261,32 +266,4 @@ function drawBoxPlot(filtered) {
       .attr("y2", y(q3))
       .attr("stroke", "#FF7043");
 
-    group.forEach(d => {
-      if (d.PurchaseAmount < lowerWhisker || d.PurchaseAmount > upperWhisker) {
-        g.append("circle")
-          .attr("cx", x(chain) + boxWidth / 2)
-          .attr("cy", y(d.PurchaseAmount))
-          .attr("r", 3)
-          .attr("fill", "#FF7043")
-          .on("mouseover", () => {
-            tooltip.style("opacity", 1).html(`<b>Outlier Value:</b> ${d.PurchaseAmount}`);
-          })
-          .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-          })
-          .on("mouseout", () => tooltip.style("opacity", 0));
-      }
-    });
-  });
-
-  svg.append("text")
-    .attr("x", width / 2 + margin.left)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Purchase Amount Distribution by Chain");
-}
-</script>
-
-</body>
-</html>
+    group
