@@ -115,8 +115,11 @@ function showNoData(containerId) {
 function updateVisuals() {
   let filtered = filterData();
   console.log("Filtered Data: ", filtered); // Log filtered data for debugging
+
+  // Check if no data was filtered
   if (filtered.length === 0) {
-    showNoData('boxPlot'); // If no data, show "No data available" message
+    console.log("No data after filtering.");
+    showNoData('boxPlot'); // Show "No data available" message
     return;
   }
   drawBarChart(filtered);
