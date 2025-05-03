@@ -5,19 +5,22 @@
   <title>Grocery Store Survey Dashboard</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: black; color: white; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #222; color: white; }
     .header { text-align: center; margin-bottom: 30px; }
-    .header h1 { font-size: 3em; font-weight: bold; color: white; }
+    .header h1 { font-size: 3em; font-weight: bold; color: #4FC3F7; }
     .filter { margin-bottom: 20px; text-align: center; }
-    label { color: white; }
-    select { background-color: black; color: white; border: 1px solid gray; }
+    label { color: white; font-weight: bold; }
+    select { background-color: #333; color: white; border: 1px solid #4FC3F7; padding: 5px 10px; border-radius: 5px; }
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
-    .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
-    svg { width: 100%; height: 400px; background: transparent; }
-    text, .tick text { fill: white; } /* Axes and titles in white */
+    .chart { width: 30%; background: #444; padding: 15px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); margin-bottom: 20px; min-height: 460px; position: relative; overflow: hidden; }
+    svg { width: 100%; height: 100%; background: transparent; border-radius: 5px; }
+    text, .tick text { fill: white; font-family: 'Segoe UI', sans-serif; } /* Axes and titles in white */
     .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: gray; }
-    .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 12px; background: lightsteelblue; border-radius: 5px; pointer-events: none; opacity: 0; color: black; }
+    .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 14px; background: #4FC3F7; border-radius: 5px; pointer-events: none; opacity: 0; color: black; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); }
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
+    .legend-container { display: flex; justify-content: center; margin-top: 15px; font-size: 12px; color: white; }
+    .legend-item { display: inline-block; margin-right: 15px; }
+    .legend-color { display: inline-block; width: 20px; height: 10px; margin-right: 6px; vertical-align: middle; }
   </style>
 </head>
 
@@ -39,7 +42,7 @@
   <div class="charts-row">
     <div class="chart" id="barChart"></div>
     <div class="chart" id="pieChart"></div>
-    <div class="chart" id="boxPlot"></div> <!-- Box plot for visualization -->
+    <div class="chart" id="boxPlot"></div>
   </div>
 
   <div class="footer">
@@ -55,14 +58,7 @@ const tooltip = d3.select("#tooltip");
 // Load data
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
-  console.log("Data Loaded: ", data); // Log the data loaded from the CSV
-
-  // Check if data is empty
-  if (!data || data.length === 0) {
-    console.error("No data loaded.");
-    alert("Error: No data loaded.");
-    return;
-  }
+  console.log("Data Loaded: ", data);
 
   data.forEach(d => {
     d.Age = +d.Age;
@@ -74,7 +70,7 @@ d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   initFilters();
   updateVisuals();
 }).catch(err => {
-  console.error("Error loading CSV file: ", err); // Error handling for data loading
+  console.error("Error loading CSV file: ", err);
   alert("Error loading the data. Please check the file path.");
 });
 
@@ -100,12 +96,12 @@ function filterData() {
 }
 
 function showNoData(containerId) {
-  d3.select(#${containerId}).html('<div class="no-data">No data available</div>');
+  d3.select(`#${containerId}`).html('<div class="no-data">No data available</div>');
 }
 
 function updateVisuals() {
   let filtered = filterData();
-  console.log("Filtered Data: ", filtered);  // Log filtered data for debugging
+  console.log("Filtered Data: ", filtered);
   drawBarChart(filtered);
   drawPieChart(filtered);
   drawBoxPlot(filtered);
@@ -113,16 +109,26 @@ function updateVisuals() {
 
 function drawBarChart(filtered) {
   const id = "barChart";
-  d3.select(#${id}).html("");
+  d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
-  const svg = d3.select(#${id}).append("svg"),
+
+  const svg = d3.select(`#${id}`).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", translate(${margin.left},${margin.top}));
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
   const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
   const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
+
+  // Add Zoom functionality to Bar chart
+  const zoom = d3.zoom()
+    .scaleExtent([1, 5])
+    .on("zoom", (event) => {
+      g.attr("transform", event.transform);
+    });
+  svg.call(zoom);
 
   g.selectAll("rect").data(Array.from(avgPurchase)).join("rect")
     .attr("x", d => x(d[0]))
@@ -131,14 +137,15 @@ function drawBarChart(filtered) {
     .attr("height", d => height - y(d[1]))
     .attr("fill", "#4FC3F7")
     .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)});
+      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
+      d3.select(event.target).transition().duration(300).attr("fill", "#FF7043"); // Hover Effect with Animation
     })
-    .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).transition().duration(300).attr("fill", "#4FC3F7"); // Reset Hover Effect
+    });
 
-  g.append("g").attr("transform", translate(0,${height})).call(d3.axisBottom(x));
+  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
 
   svg.append("text")
@@ -146,18 +153,21 @@ function drawBarChart(filtered) {
     .attr("y", 15)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
+    .style("font-weight", "bold")
     .text("Average Purchase by Chain");
 }
 
 function drawPieChart(filtered) {
   const id = "pieChart";
-  d3.select(#${id}).html("");
+  d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
-  const svg = d3.select(#${id}).append("svg"),
+
+  const svg = d3.select(`#${id}`).append("svg"),
         width = svg.node().clientWidth,
         height = svg.node().clientHeight,
         radius = Math.min(width, height) / 2 - 20,
-        g = svg.append("g").attr("transform", translate(${width / 2},${height / 2}));
+        g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
+
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
   const arc = d3.arc().innerRadius(0).outerRadius(radius);
@@ -169,31 +179,33 @@ function drawPieChart(filtered) {
     .attr("d", arc)
     .attr("fill", d => color(d.data[0]))
     .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]});
+      tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
+      d3.select(event.target).transition().duration(300).attr("fill", "#FF7043"); // Hover Effect with Animation
     })
-    .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).transition().duration(300).attr("fill", (d) => color(d.data[0])); // Reset Hover Effect
+    });
 
   svg.append("text")
     .attr("x", width / 2)
     .attr("y", 15)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
+    .style("font-weight", "bold")
     .text("Gender Distribution");
 }
 
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
-  d3.select(#${id}).html("");
+  d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
 
-  const svg = d3.select(#${id}).append("svg"),
+  const svg = d3.select(`#${id}`).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", translate(${margin.left},${margin.top}));
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
 
@@ -208,7 +220,7 @@ function drawBoxPlot(filtered) {
     .range([height, 0]);
 
   g.append("g")
-    .attr("transform", translate(0,${height}))
+    .attr("transform", `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
   g.append("g")
@@ -232,7 +244,7 @@ function drawBoxPlot(filtered) {
       .attr("fill", "#4FC3F7")
       .style("cursor", "pointer")
       .on("mouseover", () => {
-        tooltip.style("opacity", 1).html(<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)});
+        tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
       })
       .on("mousemove", (event) => {
         tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
@@ -260,23 +272,6 @@ function drawBoxPlot(filtered) {
       .attr("y1", y(upperWhisker))
       .attr("y2", y(q3))
       .attr("stroke", "#FF7043");
-
-    group.forEach(d => {
-      if (d.PurchaseAmount < lowerWhisker || d.PurchaseAmount > upperWhisker) {
-        g.append("circle")
-          .attr("cx", x(chain) + boxWidth / 2)
-          .attr("cy", y(d.PurchaseAmount))
-          .attr("r", 3)
-          .attr("fill", "#FF7043")
-          .on("mouseover", () => {
-            tooltip.style("opacity", 1).html(<b>Outlier Value:</b> ${d.PurchaseAmount});
-          })
-          .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-          })
-          .on("mouseout", () => tooltip.style("opacity", 0));
-      }
-    });
   });
 
   svg.append("text")
@@ -284,10 +279,10 @@ function drawBoxPlot(filtered) {
     .attr("y", 15)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
+    .style("font-weight", "bold")
     .text("Purchase Amount Distribution by Chain");
 }
 </script>
 
 </body>
 </html>
-
