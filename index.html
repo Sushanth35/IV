@@ -236,15 +236,15 @@ function drawBoxPlot(filtered) {
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
   
-  const x = d3.scaleLinear()
+  const x = d3.scaleBand()
+    .domain(chainGroups.map(d => d[0]))
+    .range([0, width])
+    .padding(0.2);
+
+  const y = d3.scaleLinear()
     .domain([0, d3.max(filtered, d => d.PurchaseAmount)])
     .nice()
-    .range([0, width]);
-
-  const y = d3.scaleBand()
-    .domain(chainGroups.map(d => d[0]))
-    .range([0, height])
-    .padding(0.2);
+    .range([height, 0]);
 
   g.append("g")
     .attr("transform", `translate(0,${height})`)
@@ -253,7 +253,7 @@ function drawBoxPlot(filtered) {
   g.append("g")
     .call(d3.axisLeft(y));
 
-  const boxWidth = y.bandwidth();
+  const boxWidth = x.bandwidth();
 
   chainGroups.forEach(([chain, group]) => {
     const q1 = d3.quantile(group.map(d => d.PurchaseAmount).sort(d3.ascending), 0.25);
@@ -264,27 +264,50 @@ function drawBoxPlot(filtered) {
     const upperWhisker = Math.min(d3.max(group.map(d => d.PurchaseAmount)), q3 + 1.5 * iqr);
 
     g.append("rect")
-      .attr("x", 0)
-      .attr("y", y(chain))
-      .attr("width", x(q3) - x(q1))
-      .attr("height", boxWidth)
+      .attr("x", x(chain))
+      .attr("y", y(q3))
+      .attr("width", boxWidth)
+      .attr("height", y(q1) - y(q3))
       .attr("fill", "#4FC3F7");
 
     g.append("line")
-      .attr("x1", x(median))
-      .attr("x2", x(median))
-      .attr("y1", y(chain))
-      .attr("y2", y(chain) + boxWidth)
+      .attr("x1", x(chain))
+      .attr("x2", x(chain) + boxWidth)
+      .attr("y1", y(median))
+      .attr("y2", y(median))
       .attr("stroke", "#FF7043")
       .attr("stroke-width", 2);
 
     g.append("line")
-      .attr("x1", x(lowerWhisker))
-      .attr("x2", x(upperWhisker))
-      .attr("y1", y(chain) + boxWidth / 2)
-      .attr("y2", y(chain) + boxWidth / 2)
-      .attr("stroke", "#FF7043")
-      .attr("stroke-width", 2);
+      .attr("x1", x(chain) + boxWidth / 2)
+      .attr("x2", x(chain) + boxWidth / 2)
+      .attr("y1", y(lowerWhisker))
+      .attr("y2", y(q1))
+      .attr("stroke", "#FF7043");
+
+    g.append("line")
+      .attr("x1", x(chain) + boxWidth / 2)
+      .attr("x2", x(chain) + boxWidth / 2)
+      .attr("y1", y(upperWhisker))
+      .attr("y2", y(q3))
+      .attr("stroke", "#FF7043");
+
+    group.forEach(d => {
+      if (d.PurchaseAmount < lowerWhisker || d.PurchaseAmount > upperWhisker) {
+        g.append("circle")
+          .attr("cx", x(chain) + boxWidth / 2)
+          .attr("cy", y(d.PurchaseAmount))
+          .attr("r", 3)
+          .attr("fill", "#FF7043")
+          .on("mouseover", () => {
+            tooltip.style("opacity", 1).html(`<b>Outlier Value:</b> ${d.PurchaseAmount}`);
+          })
+          .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+          })
+          .on("mouseout", () => tooltip.style("opacity", 0));
+      }
+    });
   });
 
   svg.append("text")
@@ -307,4 +330,3 @@ function resetFilters() {
 
 </body>
 </html>
-
