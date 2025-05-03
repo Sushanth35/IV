@@ -19,6 +19,7 @@
     .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 12px; background: lightsteelblue; border-radius: 5px; pointer-events: none; opacity: 0; color: black; }
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
     .zoomButtons { text-align: center; margin-bottom: 10px; } /* Added for zoom buttons */
+    .reset-button { text-align: center; margin-top: 20px; }
   </style>
 </head>
 
@@ -53,6 +54,10 @@
   </div>
 
   <div id="tooltip" class="tooltip"></div>
+
+  <div class="reset-button">
+    <button onclick="resetFilters()">Reset Filters</button>
+  </div>
 
 <script>
 let data;
@@ -213,7 +218,7 @@ function zoomInPieChart() {
 
 function zoomOutPieChart() {
     pieChartZoom -= zoomIncrement;
-    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement; 
+    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement;  
     drawPieChart(filterData());
 }
 
@@ -230,7 +235,7 @@ function drawBoxPlot(filtered) {
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
-
+  
   const x = d3.scaleLinear()
     .domain([0, d3.max(filtered, d => d.PurchaseAmount)])
     .nice()
@@ -289,7 +294,17 @@ function drawBoxPlot(filtered) {
     .style("font-size", "16px")
     .text("Purchase Amount Distribution by Chain");
 }
+
+// Reset Filters function
+function resetFilters() {
+  d3.select("#genderFilter").property("value", "All");
+  d3.select("#paymentFilter").property("value", "All");
+  d3.select("#chainFilter").property("value", "All");
+  updateVisuals();
+}
+
 </script>
 
 </body>
 </html>
+
