@@ -55,7 +55,7 @@
 let data;
 const tooltip = d3.select("#tooltip");
 
-// Load data
+// Load data (use the correct file path here)
 d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   data = rawData;
   console.log("Data Loaded: ", data); // Log the data loaded from the CSV
