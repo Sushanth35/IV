@@ -145,6 +145,18 @@ function drawBarChart(filtered) {
       d3.select(event.target).transition().duration(300).attr("fill", "#4FC3F7"); // Reset Hover Effect
     });
 
+  // Add Value Text on top of bars
+  g.selectAll("text.value")
+    .data(Array.from(avgPurchase))
+    .join("text")
+    .attr("class", "value")
+    .attr("x", d => x(d[0]) + x.bandwidth() / 2)
+    .attr("y", d => y(d[1]) - 10)
+    .attr("text-anchor", "middle")
+    .text(d => d[1].toFixed(2))
+    .style("font-size", "14px")
+    .style("fill", "#FFFFFF");
+
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
 
@@ -186,6 +198,22 @@ function drawPieChart(filtered) {
       tooltip.style("opacity", 0);
       d3.select(event.target).transition().duration(300).attr("fill", (d) => color(d.data[0])); // Reset Hover Effect
     });
+
+  // Add Values Inside Pie Slices
+  g.selectAll("text.value")
+    .data(pie(Array.from(genderCounts)))
+    .join("text")
+    .attr("class", "value")
+    .attr("transform", (d) => {
+      const midAngle = (d.startAngle + d.endAngle) / 2;
+      const x = Math.cos(midAngle) * (radius / 1.5);
+      const y = Math.sin(midAngle) * (radius / 1.5);
+      return `translate(${x},${y})`;
+    })
+    .attr("text-anchor", "middle")
+    .style("font-size", "14px")
+    .style("fill", "#FFFFFF")
+    .text(d => d.data[1]);
 
   svg.append("text")
     .attr("x", width / 2)
@@ -251,27 +279,30 @@ function drawBoxPlot(filtered) {
       })
       .on("mouseout", () => tooltip.style("opacity", 0));
 
-    g.append("line")
-      .attr("x1", x(chain))
-      .attr("x2", x(chain) + boxWidth)
-      .attr("y1", y(median))
-      .attr("y2", y(median))
-      .attr("stroke", "#FF7043")
-      .attr("stroke-width", 2);
+    // Add values for the box plot
+    g.append("text")
+      .attr("x", x(chain) + boxWidth / 2)
+      .attr("y", y(q1) - 10)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .text(q1.toFixed(2))
+      .style("fill", "white");
 
-    g.append("line")
-      .attr("x1", x(chain) + boxWidth / 2)
-      .attr("x2", x(chain) + boxWidth / 2)
-      .attr("y1", y(lowerWhisker))
-      .attr("y2", y(q1))
-      .attr("stroke", "#FF7043");
+    g.append("text")
+      .attr("x", x(chain) + boxWidth / 2)
+      .attr("y", y(median) - 10)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .text(median.toFixed(2))
+      .style("fill", "white");
 
-    g.append("line")
-      .attr("x1", x(chain) + boxWidth / 2)
-      .attr("x2", x(chain) + boxWidth / 2)
-      .attr("y1", y(upperWhisker))
-      .attr("y2", y(q3))
-      .attr("stroke", "#FF7043");
+    g.append("text")
+      .attr("x", x(chain) + boxWidth / 2)
+      .attr("y", y(q3) + 10)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .text(q3.toFixed(2))
+      .style("fill", "white");
   });
 
   svg.append("text")
@@ -286,4 +317,3 @@ function drawBoxPlot(filtered) {
 
 </body>
 </html>
-
