@@ -116,114 +116,9 @@ function updateVisuals() {
   drawBoxPlot(filtered);
 }
 
-function drawBarChart(filtered) {
-  const id = "barChart";
-  d3.select(`#${id}`).html(""); 
-  if (filtered.length === 0) { showNoData(id); return; }
-
-  const svg = d3.select(`#${id}`).append("svg"),
-        margin = {top: 20, right: 20, bottom: 50, left: 50},
-        width = svg.node().clientWidth - margin.left - margin.right,
-        height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-  const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
-  
-  const x = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([0, width]);
-  const y = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, height]).padding(0.3);
-
-  const color = "#4FC3F7"; 
-
-  g.selectAll("rect")
-    .data(Array.from(avgPurchase))
-    .join("rect")
-    .attr("x", 0)
-    .attr("y", d => y(d[0]))
-    .attr("width", d => x(d[1]))
-    .attr("height", y.bandwidth())
-    .attr("fill", color)  
-    .on("mouseover", (event, d) => {
-      d3.select(event.target).attr("fill", "#FF7043"); 
-      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
-    })
-    .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", (event) => {
-      d3.select(event.target).attr("fill", color); 
-      tooltip.style("opacity", 0);
-    });
-
-  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
-  g.append("g").call(d3.axisLeft(y));
-
-  svg.append("text")
-    .attr("x", width / 2 + margin.left)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Average Purchase by Chain");
-}
-
-function drawPieChart(filtered) {
-  const id = "pieChart";
-  d3.select(`#${id}`).html(""); 
-  if (filtered.length === 0) { showNoData(id); return; }
-
-  const svg = d3.select(`#${id}`).append("svg"),
-        width = svg.node().clientWidth,
-        height = svg.node().clientHeight,
-        radius = Math.min(width, height) / 2 - 20,
-        g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
-
-  const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
-  const pie = d3.pie().value(d => d[1]);
-  pieChartArc = d3.arc().innerRadius(0).outerRadius(radius * pieChartZoom);
-  pieChartScale = d3.scaleOrdinal()
-                  .domain(Array.from(genderCounts.keys()))
-                  .range(["#9C27B0", "#FF9800"]);
-
-  g.selectAll("path")
-    .data(pie(Array.from(genderCounts)))
-    .join("path")
-    .attr("d", pieChartArc)
-    .attr("fill", (d, i) => pieChartScale(d.data[0]))
-    .style("cursor", "pointer")
-    .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
-      d3.select(event.target).transition().duration(200).attr("transform", "scale(1.1)"); 
-    })
-    .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", (event) => {
-      tooltip.style("opacity", 0);
-      d3.select(event.target).transition().duration(200).attr("transform", "scale(1)"); 
-    });
-
-  svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .text("Gender Distribution");
-}
-
-// Zoom In and Zoom Out Functions for Pie Chart
-function zoomInPieChart() {
-    pieChartZoom += zoomIncrement;
-    drawPieChart(filterData());
-}
-
-function zoomOutPieChart() {
-    pieChartZoom -= zoomIncrement;
-    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement; 
-    drawPieChart(filterData());
-}
-
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
-  d3.select(`#${id}`).html(""); 
+  d3.select(`#${id}`).html("");
   if (filtered.length === 0) { showNoData(id); return; }
 
   const svg = d3.select(`#${id}`).append("svg"),
@@ -233,7 +128,7 @@ function drawBoxPlot(filtered) {
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
-  
+
   const x = d3.scaleLinear()
     .domain([0, d3.max(filtered, d => d.PurchaseAmount)])
     .nice()
@@ -265,7 +160,7 @@ function drawBoxPlot(filtered) {
       .attr("x", 0)
       .attr("y", y(chain))
       .attr("width", x(q3) - x(q1))
-      .attr("height", y.bandwidth())
+      .attr("height", boxWidth)
       .attr("fill", "#FF7043")
       .on("mouseover", () => {
         tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
@@ -282,6 +177,24 @@ function drawBoxPlot(filtered) {
       .attr("y2", y(chain) + boxWidth)
       .attr("stroke", "#4FC3F7")
       .attr("stroke-width", 2);
+
+    // Display Outliers as circles
+    group.forEach(d => {
+      if (d.PurchaseAmount < lowerWhisker || d.PurchaseAmount > upperWhisker) {
+        g.append("circle")
+          .attr("cx", x(d.PurchaseAmount))
+          .attr("cy", y(chain) + boxWidth / 2)
+          .attr("r", 3)
+          .attr("fill", "#FF7043")
+          .on("mouseover", () => {
+            tooltip.style("opacity", 1).html(`<b>Outlier Value:</b> ${d.PurchaseAmount}`);
+          })
+          .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+          })
+          .on("mouseout", () => tooltip.style("opacity", 0));
+      }
+    });
   });
 
   svg.append("text")
