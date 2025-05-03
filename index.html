@@ -63,6 +63,7 @@ d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   // Check if data is empty
   if (!data || data.length === 0) {
     console.error("No data loaded.");
+    alert("Error: No data loaded.");
     return;
   }
 
@@ -82,6 +83,7 @@ d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
   updateVisuals();
 }).catch(err => {
   console.error('Error loading CSV file: ', err); // Error handling for data loading
+  alert("Error loading the data. Please check the file path.");
 });
 
 function initFilters() {
@@ -248,4 +250,3 @@ function drawBoxPlot(filtered) {
 
 </body>
 </html>
-
