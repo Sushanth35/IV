@@ -39,7 +39,12 @@
 
   <div class="charts-row">
     <div class="chart" id="barChart"></div>
-    <div class="chart" id="pieChart"></div>
+    <div class="chart" id="pieChart">
+      <div class="zoomButtons">
+        <button onclick="zoomInPieChart()">Zoom In</button>
+        <button onclick="zoomOutPieChart()">Zoom Out</button>
+      </div>
+    </div>
     <div class="chart" id="boxPlot"></div> <!-- Box plot for visualization -->
   </div>
 
@@ -107,6 +112,112 @@ function updateVisuals() {
   drawBoxPlot(filtered);
 }
 
+function drawBarChart(filtered) {
+  const id = "barChart";
+  d3.select(`#${id}`).html(""); 
+  if (filtered.length === 0) { showNoData(id); return; }
+
+  const svg = d3.select(`#${id}`).append("svg"),
+        margin = {top: 20, right: 20, bottom: 50, left: 50},
+        width = svg.node().clientWidth - margin.left - margin.right,
+        height = svg.node().clientHeight - margin.top - margin.bottom,
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
+  
+  const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
+  const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
+
+  // Default color - blue
+  const color = "#4FC3F7"; 
+
+  g.selectAll("rect")
+    .data(Array.from(avgPurchase))
+    .join("rect")
+    .attr("x", d => x(d[0]))
+    .attr("y", d => y(d[1]))
+    .attr("width", x.bandwidth())
+    .attr("height", d => height - y(d[1]))
+    .attr("fill", color)  // Default blue color
+    .on("mouseover", (event, d) => {
+      d3.select(event.target).attr("fill", "#FF7043"); // Change to orange on hover
+      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", (event) => {
+      d3.select(event.target).attr("fill", color); // Revert back to blue after hover
+      tooltip.style("opacity", 0);
+    });
+
+  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
+  g.append("g").call(d3.axisLeft(y));
+
+  svg.append("text")
+    .attr("x", width / 2 + margin.left)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("Average Purchase by Chain");
+}
+
+function drawPieChart(filtered) {
+  const id = "pieChart";
+  d3.select(`#${id}`).html(""); 
+  if (filtered.length === 0) { showNoData(id); return; }
+
+  const svg = d3.select(`#${id}`).append("svg"),
+        width = svg.node().clientWidth,
+        height = svg.node().clientHeight,
+        radius = Math.min(width, height) / 2 - 20,
+        g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
+
+  const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
+  const pie = d3.pie().value(d => d[1]);
+  pieChartArc = d3.arc().innerRadius(0).outerRadius(radius * pieChartZoom); // radius * zoom
+  pieChartScale = d3.scaleOrdinal()
+                  .domain(Array.from(genderCounts.keys()))
+                  .range(["#9C27B0", "#FF9800"]);  // Purple and Orange colors
+
+  g.selectAll("path")
+    .data(pie(Array.from(genderCounts)))
+    .join("path")
+    .attr("d", pieChartArc)
+    .attr("fill", (d, i) => pieChartScale(d.data[0]))
+    .style("cursor", "pointer")
+    .on("mouseover", (event, d) => {
+      tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
+      d3.select(event.target).transition().duration(200).attr("transform", "scale(1.1)"); // Zoom in effect
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", (event) => {
+      tooltip.style("opacity", 0);
+      d3.select(event.target).transition().duration(200).attr("transform", "scale(1)"); // Zoom out effect
+    });
+
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("Gender Distribution");
+}
+
+// Zoom In and Zoom Out Functions for Pie Chart
+function zoomInPieChart() {
+    pieChartZoom += zoomIncrement;
+    drawPieChart(filterData());
+}
+
+function zoomOutPieChart() {
+    pieChartZoom -= zoomIncrement;
+    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement;  // Limit zoom out
+    drawPieChart(filterData());
+}
+
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
   d3.select(`#${id}`).html(""); 
@@ -147,7 +258,7 @@ function drawBoxPlot(filtered) {
     const lowerWhisker = Math.max(d3.min(group.map(d => d.PurchaseAmount)), q1 - 1.5 * iqr);
     const upperWhisker = Math.min(d3.max(group.map(d => d.PurchaseAmount)), q3 + 1.5 * iqr);
 
-    const box = g.append("rect")
+    g.append("rect")
       .attr("x", x(chain))
       .attr("y", y(q3))
       .attr("width", boxWidth)
@@ -155,15 +266,11 @@ function drawBoxPlot(filtered) {
       .attr("fill", "#4FC3F7")
       .on("mouseover", () => {
         tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
-        d3.select(this).attr("fill", "#FF7043"); // Change color on hover
       })
       .on("mousemove", (event) => {
         tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
       })
-      .on("mouseout", () => {
-        tooltip.style("opacity", 0);
-        d3.select(this).attr("fill", "#4FC3F7"); // Reset color on mouseout
-      });
+      .on("mouseout", () => tooltip.style("opacity", 0));
 
     g.append("line")
       .attr("x1", x(chain))
