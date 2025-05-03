@@ -112,15 +112,12 @@ function drawBarChart(filtered) {
         g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
-  const threshold = d3.mean(Array.from(avgPurchase.values())); // Set threshold as the average of all values
-
+  
   const x = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, width]).padding(0.3);
   const y = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([height, 0]);
 
-  // Color scale based on whether the purchase is above or below the threshold
-  const color = d3.scaleOrdinal()
-                  .domain(Array.from(avgPurchase.keys()))
-                  .range(["#4FC3F7", "#FF7043"]);
+  // Default color - blue
+  const color = "#4FC3F7"; 
 
   g.selectAll("rect")
     .data(Array.from(avgPurchase))
@@ -129,14 +126,18 @@ function drawBarChart(filtered) {
     .attr("y", d => y(d[1]))
     .attr("width", x.bandwidth())
     .attr("height", d => height - y(d[1]))
-    .attr("fill", d => (d[1] >= threshold ? "#4FC3F7" : "#FF7043"))  // Two colors based on the threshold
+    .attr("fill", color)  // Default blue color
     .on("mouseover", (event, d) => {
+      d3.select(event.target).attr("fill", "#FF7043"); // Change to orange on hover
       tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", (event) => {
+      d3.select(event.target).attr("fill", color); // Revert back to blue after hover
+      tooltip.style("opacity", 0);
+    });
 
   g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
@@ -148,6 +149,7 @@ function drawBarChart(filtered) {
     .style("font-size", "16px")
     .text("Average Purchase by Chain");
 }
+
 </script>
 
 </body>
