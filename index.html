@@ -14,11 +14,13 @@
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
     .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
     svg { width: 100%; height: 400px; background: transparent; }
-    text, .tick text { fill: white; } /* Axes and titles in white */
+    text, .tick text { fill: white; }
     .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: gray; }
     .tooltip { position: absolute; text-align: center; padding: 6px; font-size: 12px; background: lightsteelblue; border-radius: 5px; pointer-events: none; opacity: 0; color: black; }
     .no-data { text-align: center; color: gray; padding-top: 100px; font-size: 18px; }
-    .zoomButtons { text-align: center; margin-bottom: 10px; } /* Added for zoom buttons */
+    .zoomButtons { text-align: center; margin-bottom: 10px; }
+    .resetButton { text-align: center; margin-top: 20px; padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    .resetButton:hover { background-color: #45a049; }
   </style>
 </head>
 
@@ -47,6 +49,8 @@
     </div>
     <div class="chart" id="boxPlot"></div> <!-- Box plot for visualization -->
   </div>
+
+  <button class="resetButton" onclick="resetFilters()">Reset Filters</button>
 
   <div class="footer">
     Created by Harshitha Patlolla, Varun Sai Arutla, Lakshmi Mattaparthi, Sushanth Malliboina
@@ -125,10 +129,9 @@ function drawBarChart(filtered) {
 
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
   
-  const x = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([0, width]);  // X-axis now shows the avg purchase
-  const y = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, height]).padding(0.3);  // Y-axis shows the Chain names
+  const x = d3.scaleLinear().domain([0, d3.max(avgPurchase.values())]).nice().range([0, width]);
+  const y = d3.scaleBand().domain(Array.from(avgPurchase.keys())).range([0, height]).padding(0.3);
 
-  // Default color - blue
   const color = "#4FC3F7"; 
 
   g.selectAll("rect")
@@ -136,18 +139,18 @@ function drawBarChart(filtered) {
     .join("rect")
     .attr("x", 0)
     .attr("y", d => y(d[0]))
-    .attr("width", d => x(d[1]))  // Width based on the average purchase value
+    .attr("width", d => x(d[1]))
     .attr("height", y.bandwidth())
-    .attr("fill", color)  // Default blue color
+    .attr("fill", color)  
     .on("mouseover", (event, d) => {
-      d3.select(event.target).attr("fill", "#FF7043"); // Change to orange on hover
+      d3.select(event.target).attr("fill", "#FF7043"); 
       tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", (event) => {
-      d3.select(event.target).attr("fill", color); // Revert back to blue after hover
+      d3.select(event.target).attr("fill", color); 
       tooltip.style("opacity", 0);
     });
 
@@ -175,10 +178,10 @@ function drawPieChart(filtered) {
 
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
-  pieChartArc = d3.arc().innerRadius(0).outerRadius(radius * pieChartZoom); // radius * zoom
+  pieChartArc = d3.arc().innerRadius(0).outerRadius(radius * pieChartZoom);
   pieChartScale = d3.scaleOrdinal()
                   .domain(Array.from(genderCounts.keys()))
-                  .range(["#9C27B0", "#FF9800"]);  // Purple and Orange colors
+                  .range(["#9C27B0", "#FF9800"]);
 
   g.selectAll("path")
     .data(pie(Array.from(genderCounts)))
@@ -188,14 +191,14 @@ function drawPieChart(filtered) {
     .style("cursor", "pointer")
     .on("mouseover", (event, d) => {
       tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
-      d3.select(event.target).transition().duration(200).attr("transform", "scale(1.1)"); // Zoom in effect
+      d3.select(event.target).transition().duration(200).attr("transform", "scale(1.1)"); 
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", (event) => {
       tooltip.style("opacity", 0);
-      d3.select(event.target).transition().duration(200).attr("transform", "scale(1)"); // Zoom out effect
+      d3.select(event.target).transition().duration(200).attr("transform", "scale(1)"); 
     });
 
   svg.append("text")
@@ -214,11 +217,10 @@ function zoomInPieChart() {
 
 function zoomOutPieChart() {
     pieChartZoom -= zoomIncrement;
-    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement;  // Limit zoom out
+    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement; 
     drawPieChart(filterData());
 }
 
-// Box Plot
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
   d3.select(`#${id}`).html(""); 
@@ -232,15 +234,17 @@ function drawBoxPlot(filtered) {
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
   
-  const x = d3.scaleBand()
-    .domain(chainGroups.map(d => d[0]))
-    .range([0, width])
-    .padding(0.2);
-
-  const y = d3.scaleLinear()
+  const x = d3.scaleLinear()
     .domain([0, d3.max(filtered, d => d.PurchaseAmount)])
     .nice()
-    .range([height, 0]);
+    .range([0, width]);
+
+  const y = d3.scaleBand()
+    .domain(chainGroups.map(d => d[0]))
+    .range([0, height])
+    .padding(0.3);
+
+  const boxWidth = y.bandwidth();
 
   g.append("g")
     .attr("transform", `translate(0,${height})`)
@@ -248,8 +252,6 @@ function drawBoxPlot(filtered) {
 
   g.append("g")
     .call(d3.axisLeft(y));
-
-  const boxWidth = x.bandwidth();
 
   chainGroups.forEach(([chain, group]) => {
     const q1 = d3.quantile(group.map(d => d.PurchaseAmount).sort(d3.ascending), 0.25);
@@ -260,11 +262,11 @@ function drawBoxPlot(filtered) {
     const upperWhisker = Math.min(d3.max(group.map(d => d.PurchaseAmount)), q3 + 1.5 * iqr);
 
     g.append("rect")
-      .attr("x", x(chain))
-      .attr("y", y(q3))
-      .attr("width", boxWidth)
-      .attr("height", y(q1) - y(q3))
-      .attr("fill", "#4FC3F7")
+      .attr("x", 0)
+      .attr("y", y(chain))
+      .attr("width", x(q3) - x(q1))
+      .attr("height", y.bandwidth())
+      .attr("fill", "#FF7043")
       .on("mouseover", () => {
         tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
       })
@@ -274,43 +276,12 @@ function drawBoxPlot(filtered) {
       .on("mouseout", () => tooltip.style("opacity", 0));
 
     g.append("line")
-      .attr("x1", x(chain))
-      .attr("x2", x(chain) + boxWidth)
-      .attr("y1", y(median))
-      .attr("y2", y(median))
-      .attr("stroke", "#FF7043")
+      .attr("x1", x(median))
+      .attr("x2", x(median))
+      .attr("y1", y(chain))
+      .attr("y2", y(chain) + boxWidth)
+      .attr("stroke", "#4FC3F7")
       .attr("stroke-width", 2);
-
-    g.append("line")
-      .attr("x1", x(chain) + boxWidth / 2)
-      .attr("x2", x(chain) + boxWidth / 2)
-      .attr("y1", y(lowerWhisker))
-      .attr("y2", y(q1))
-      .attr("stroke", "#FF7043");
-
-    g.append("line")
-      .attr("x1", x(chain) + boxWidth / 2)
-      .attr("x2", x(chain) + boxWidth / 2)
-      .attr("y1", y(upperWhisker))
-      .attr("y2", y(q3))
-      .attr("stroke", "#FF7043");
-
-    group.forEach(d => {
-      if (d.PurchaseAmount < lowerWhisker || d.PurchaseAmount > upperWhisker) {
-        g.append("circle")
-          .attr("cx", x(chain) + boxWidth / 2)
-          .attr("cy", y(d.PurchaseAmount))
-          .attr("r", 3)
-          .attr("fill", "#FF7043")
-          .on("mouseover", () => {
-            tooltip.style("opacity", 1).html(`<b>Outlier Value:</b> ${d.PurchaseAmount}`);
-          })
-          .on("mousemove", (event) => {
-            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-          })
-          .on("mouseout", () => tooltip.style("opacity", 0));
-      }
-    });
   });
 
   svg.append("text")
@@ -319,6 +290,14 @@ function drawBoxPlot(filtered) {
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
     .text("Purchase Amount Distribution by Chain");
+}
+
+// Reset Filters
+function resetFilters() {
+  d3.select("#genderFilter").property("value", "All");
+  d3.select("#paymentFilter").property("value", "All");
+  d3.select("#chainFilter").property("value", "All");
+  updateVisuals();
 }
 </script>
 
