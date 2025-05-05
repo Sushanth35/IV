@@ -221,7 +221,7 @@ function zoomOutPieChart() {
     drawPieChart(filterData());
 }
 
-// Box Plot function with Interchanged X and Y axes
+// Box Plot function with Interchanged X and Y axes and hover interaction
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
   d3.select(`#${id}`).html(""); 
@@ -267,7 +267,14 @@ function drawBoxPlot(filtered) {
       .attr("y", y(q3))
       .attr("width", boxWidth)
       .attr("height", y(q1) - y(q3))
-      .attr("fill", "#4FC3F7");
+      .attr("fill", "#4FC3F7")
+      .on("mouseover", () => {
+        tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
+      })
+      .on("mousemove", (event) => {
+        tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+      })
+      .on("mouseout", () => tooltip.style("opacity", 0));
 
     g.append("line")
       .attr("x1", x(chain))
