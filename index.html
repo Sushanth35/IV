@@ -50,6 +50,11 @@
     <div class="chart" id="boxPlot"></div> <!-- Box plot for visualization -->
   </div>
 
+  <div class="chart" id="performanceAnalysis">
+    <h3>Performance Analysis</h3>
+    <div id="scatterPlot"></div> <!-- Performance Analysis scatter plot -->
+  </div>
+
   <button class="resetButton" onclick="resetFilters()">Reset Filters</button>
 
   <div class="footer">
@@ -76,7 +81,10 @@ d3.csv("a1-grocerystoresurvey.csv").then(rawData => {
     d.Income = +d.Income;
     d.PurchaseAmount = +d.PurchaseAmount;
     d.FamilySize = +d.FamilySize;
+    d['1 Year Return'] = +d['1 Year Return'];  // Ensure this field exists
+    d['3 Year Return'] = +d['3 Year Return'];  // Ensure this field exists
   });
+
   initFilters();
   updateVisuals();
 }).catch(err => {
@@ -114,6 +122,7 @@ function updateVisuals() {
   drawBarChart(filtered);
   drawPieChart(filtered);
   drawBoxPlot(filtered);
+  drawScatterPlot(filtered); // Adding the scatter plot to the visuals
 }
 
 function drawBarChart(filtered) {
