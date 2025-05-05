@@ -12,7 +12,7 @@
     label { color: white; }
     select { background-color: black; color: white; border: 1px solid gray; }
     .charts-row { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 20px; }
-    .chart { width: 45%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
+    .chart { width: 30%; background: #111; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,255,255,0.1); margin-bottom: 20px; min-height: 460px; position: relative; }
     svg { width: 100%; height: 400px; background: transparent; }
     text, .tick text { fill: white; }
     .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: gray; }
@@ -48,7 +48,11 @@
       </div>
     </div>
     <div class="chart" id="boxPlot"></div> <!-- Box plot for visualization -->
-    <div class="chart" id="scatterPlot"></div> <!-- Scatter plot for performance analysis -->
+  </div>
+
+  <div class="chart" id="performanceAnalysis">
+    <h3>Performance Analysis</h3>
+    <div id="scatterPlot"></div>
   </div>
 
   <button class="resetButton" onclick="resetFilters()">Reset Filters</button>
@@ -214,75 +218,63 @@ function drawPieChart(filtered) {
     .text("Gender Distribution");
 }
 
-// Zoom In and Zoom Out Functions for Pie Chart
-function zoomInPieChart() {
-    pieChartZoom += zoomIncrement;
-    drawPieChart(filterData());
-}
-
-function zoomOutPieChart() {
-    pieChartZoom -= zoomIncrement;
-    if (pieChartZoom < zoomIncrement) pieChartZoom = zoomIncrement; 
-    drawPieChart(filterData());
-}
-
-// Scatter Plot function
 function drawScatterPlot(filtered) {
   const id = "scatterPlot";
-  d3.select(`#${id}`).html("");  // Clear previous scatter plot
+  d3.select(`#${id}`).html(""); 
   if (filtered.length === 0) { showNoData(id); return; }
 
-  const svg = d3.select(`#${id}`).append("svg")
-                .attr("width", 600)
-                .attr("height", 400);
-  
+  const svg = d3.select(`#${id}`).append("svg"),
+        margin = { top: 20, right: 20, bottom: 50, left: 50 },
+        width = svg.node().clientWidth - margin.left - margin.right,
+        height = svg.node().clientHeight - margin.top - margin.bottom,
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
   const x = d3.scaleLinear()
-              .domain([d3.min(filtered, d => d['1 Year Return']), d3.max(filtered, d => d['1 Year Return'])])
-              .nice()
-              .range([50, 550]);  // Adjusted for margins
+    .domain([d3.min(filtered, d => d['1 Year Return']), d3.max(filtered, d => d['1 Year Return'])])
+    .range([0, width]);
 
   const y = d3.scaleLinear()
-              .domain([d3.min(filtered, d => d['3 Year Return']), d3.max(filtered, d => d['3 Year Return'])])
-              .nice()
-              .range([350, 50]);
+    .domain([d3.min(filtered, d => d['3 Year Return']), d3.max(filtered, d => d['3 Year Return'])])
+    .range([height, 0]);
 
-  svg.selectAll("circle")
-     .data(filtered)
-     .join("circle")
-     .attr("cx", d => x(d['1 Year Return']))
-     .attr("cy", d => y(d['3 Year Return']))
-     .attr("r", 5)
-     .attr("fill", "#4FC3F7");
+  g.selectAll("circle")
+    .data(filtered)
+    .join("circle")
+    .attr("cx", d => x(d['1 Year Return']))
+    .attr("cy", d => y(d['3 Year Return']))
+    .attr("r", 5)
+    .attr("fill", "#4FC3F7")
+    .on("mouseover", (event, d) => {
+      tooltip.style("opacity", 1).html(`<b>1 Year Return:</b> ${d['1 Year Return']}<br><b>3 Year Return:</b> ${d['3 Year Return']}`);
+    })
+    .on("mousemove", (event) => {
+      tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", () => {
+      tooltip.style("opacity", 0);
+    });
 
-  svg.append("g")
-     .attr("transform", "translate(0,350)")  // Move the X axis to the bottom
-     .call(d3.axisBottom(x));
+  g.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x));
 
-  svg.append("g")
-     .attr("transform", "translate(50,0)")  // Move the Y axis to the left
-     .call(d3.axisLeft(y));
-
-  svg.append("text")
-     .attr("x", 300)
-     .attr("y", 380)
-     .attr("text-anchor", "middle")
-     .style("font-size", "16px")
-     .text("1 Year Return");
-
-  svg.append("text")
-     .attr("x", -50)
-     .attr("y", 200)
-     .attr("text-anchor", "middle")
-     .style("font-size", "16px")
-     .text("3 Year Return")
-     .attr("transform", "rotate(-90, -50, 200)");
+  g.append("g")
+    .call(d3.axisLeft(y));
 
   svg.append("text")
-     .attr("x", 300)
-     .attr("y", 30)
-     .attr("text-anchor", "middle")
-     .style("font-size", "16px")
-     .text("Performance Analysis: 1 Year Return vs 3 Year Return");
+    .attr("x", width / 2 + margin.left)
+    .attr("y", height + margin.top + 30)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("1 Year Return (%)");
+
+  svg.append("text")
+    .attr("x", -(height / 2) - margin.top)
+    .attr("y", margin.left - 40)
+    .attr("transform", "rotate(-90)")
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .text("3 Year Return (%)");
 }
 
 // Reset Filters
