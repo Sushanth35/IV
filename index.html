@@ -106,7 +106,7 @@ function filterData() {
 }
 
 function showNoData(containerId) {
-  d3.select(#${containerId}).html('<div class="no-data">No data available</div>');
+  d3.select(`#${containerId}`).html('<div class="no-data">No data available</div>');
 }
 
 function updateVisuals() {
@@ -118,14 +118,14 @@ function updateVisuals() {
 
 function drawBarChart(filtered) {
   const id = "barChart";
-  d3.select(#${id}).html(""); 
+  d3.select(`#${id}`).html(""); 
   if (filtered.length === 0) { showNoData(id); return; }
 
-  const svg = d3.select(#${id}).append("svg"),
+  const svg = d3.select(`#${id}`).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", translate(${margin.left},${margin.top}));
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   const avgPurchase = d3.rollup(filtered, v => d3.mean(v, d => d.PurchaseAmount), d => d.Chain);
   
@@ -144,7 +144,7 @@ function drawBarChart(filtered) {
     .attr("fill", color)  
     .on("mouseover", (event, d) => {
       d3.select(event.target).attr("fill", "#FF7043"); 
-      tooltip.style("opacity", 1).html(<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)});
+      tooltip.style("opacity", 1).html(`<b>Chain:</b> ${d[0]}<br><b>Avg Purchase:</b> $${d[1].toFixed(2)}`);
     })
     .on("mousemove", (event) => {
       tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
@@ -154,7 +154,7 @@ function drawBarChart(filtered) {
       tooltip.style("opacity", 0);
     });
 
-  g.append("g").attr("transform", translate(0,${height})).call(d3.axisBottom(x));
+  g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
   g.append("g").call(d3.axisLeft(y));
 
   svg.append("text")
@@ -167,14 +167,14 @@ function drawBarChart(filtered) {
 
 function drawPieChart(filtered) {
   const id = "pieChart";
-  d3.select(#${id}).html(""); 
+  d3.select(`#${id}`).html(""); 
   if (filtered.length === 0) { showNoData(id); return; }
 
-  const svg = d3.select(#${id}).append("svg"),
+  const svg = d3.select(`#${id}`).append("svg"),
         width = svg.node().clientWidth,
         height = svg.node().clientHeight,
         radius = Math.min(width, height) / 2 - 20,
-        g = svg.append("g").attr("transform", translate(${width / 2},${height / 2}));
+        g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
   const genderCounts = d3.rollup(filtered, v => v.length, d => d.Gender);
   const pie = d3.pie().value(d => d[1]);
@@ -190,7 +190,7 @@ function drawPieChart(filtered) {
     .attr("fill", (d, i) => pieChartScale(d.data[0]))
     .style("cursor", "pointer")
     .on("mouseover", (event, d) => {
-      tooltip.style("opacity", 1).html(<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]});
+      tooltip.style("opacity", 1).html(`<b>Gender:</b> ${d.data[0]}<br><b>Count:</b> ${d.data[1]}`);
       d3.select(event.target).transition().duration(200).attr("transform", "scale(1.1)"); 
     })
     .on("mousemove", (event) => {
@@ -224,14 +224,14 @@ function zoomOutPieChart() {
 // Box Plot function with Interchanged X and Y axes and hover interaction and outliers
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
-  d3.select(#${id}).html(""); 
+  d3.select(`#${id}`).html(""); 
   if (filtered.length === 0) { showNoData(id); return; }
 
-  const svg = d3.select(#${id}).append("svg"),
+  const svg = d3.select(`#${id}`).append("svg"),
         margin = {top: 20, right: 20, bottom: 50, left: 50},
         width = svg.node().clientWidth - margin.left - margin.right,
         height = svg.node().clientHeight - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", translate(${margin.left},${margin.top}));
+        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   const chainGroups = d3.groups(filtered, d => d.Chain);
 
@@ -246,7 +246,7 @@ function drawBoxPlot(filtered) {
     .range([height, 0]);
 
   g.append("g")
-    .attr("transform", translate(0,${height}))
+    .attr("transform", `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
   g.append("g")
@@ -269,7 +269,7 @@ function drawBoxPlot(filtered) {
       .attr("height", y(q1) - y(q3))
       .attr("fill", "#4FC3F7")
       .on("mouseover", () => {
-        tooltip.style("opacity", 1).html(<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)});
+        tooltip.style("opacity", 1).html(`<b>Chain:</b> ${chain}<br><b>Q1:</b> ${q1.toFixed(2)}<br><b>Median:</b> ${median.toFixed(2)}<br><b>Q3:</b> ${q3.toFixed(2)}`);
       })
       .on("mousemove", (event) => {
         tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
@@ -310,7 +310,7 @@ function drawBoxPlot(filtered) {
       .attr("r", 5)
       .attr("fill", "#FF7043")
       .on("mouseover", (event, d) => {
-        tooltip.style("opacity", 1).html(<b>Outlier Value:</b> ${d.PurchaseAmount.toFixed(2)}<br><b>Chain:</b> ${chain});
+        tooltip.style("opacity", 1).html(`<b>Outlier Value:</b> ${d.PurchaseAmount.toFixed(2)}<br><b>Chain:</b> ${chain}`);
       })
       .on("mousemove", (event) => {
         tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
