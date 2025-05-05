@@ -221,7 +221,7 @@ function zoomOutPieChart() {
     drawPieChart(filterData());
 }
 
-// Box Plot function with Interchanged X and Y axes and hover interaction
+// Box Plot function with Interchanged X and Y axes and hover interaction and outliers
 function drawBoxPlot(filtered) {
   const id = "boxPlot";
   d3.select(`#${id}`).html(""); 
@@ -299,6 +299,23 @@ function drawBoxPlot(filtered) {
       .attr("y2", y(q3))
       .attr("stroke", "#FF7043")
       .attr("stroke-width", 2);
+
+    // Outlier points
+    const outliers = group.filter(d => d.PurchaseAmount < lowerWhisker || d.PurchaseAmount > upperWhisker);
+    g.selectAll(".outlier")
+      .data(outliers)
+      .join("circle")
+      .attr("cx", x(chain) + boxWidth / 2)
+      .attr("cy", d => y(d.PurchaseAmount))
+      .attr("r", 5)
+      .attr("fill", "#FF7043")
+      .on("mouseover", (event, d) => {
+        tooltip.style("opacity", 1).html(`<b>Outlier Value:</b> ${d.PurchaseAmount.toFixed(2)}<br><b>Chain:</b> ${chain}`);
+      })
+      .on("mousemove", (event) => {
+        tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+      })
+      .on("mouseout", () => tooltip.style("opacity", 0));
   });
 
   svg.append("text")
@@ -320,3 +337,4 @@ function resetFilters() {
 
 </body>
 </html>
+
